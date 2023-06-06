@@ -7,9 +7,9 @@ pub trait ToNetworkOrder {
 }
 
 // function to convert from network order (big-endian)
-pub trait FromNetworkOrder<'a> {
+pub trait FromNetworkOrder {
     // copy from a network-order buffer to a structure
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()>;
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()>;
 }
 
 //all definitions of to_network_order()/from_network_order() for standard types
@@ -27,8 +27,8 @@ macro_rules! impl_primitive {
             }
         }
 
-        impl<'a> FromNetworkOrder<'a> for $t {
-            fn from_network_order(&mut self, v: &mut std::io::Cursor<&[u8]>) -> Result<()> {
+        impl FromNetworkOrder for $t {
+            fn from_network_order<'a>(&mut self, v: &mut std::io::Cursor<&[u8]>) -> Result<()> {
                 let value = v.$fr::<BigEndian>()?;
                 match <$t>::try_from(value) {
                     Ok(ct) => {
@@ -56,7 +56,7 @@ pub mod test_helpers {
     // used for boiler plate unit tests for integers, floats etc
     pub fn from_network_helper<'a, T>(def: Option<T>, val: T, buf: &'a Vec<u8>)
     where
-        T: FromNetworkOrder<'a> + Default + std::fmt::Debug + std::cmp::PartialEq,
+        T: FromNetworkOrder + Default + std::fmt::Debug + std::cmp::PartialEq,
     {
         let mut buffer = Cursor::new(buf.as_slice());
         let mut v: T = if def.is_none() {

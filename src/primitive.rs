@@ -12,7 +12,7 @@ impl ToNetworkOrder for i8 {
     }
 }
 
-impl<'a> FromNetworkOrder<'a> for i8 {
+impl FromNetworkOrder for i8 {
     fn from_network_order(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<()> {
         *self = buffer.read_i8()?;
         Ok(())
@@ -32,8 +32,8 @@ impl ToNetworkOrder for u8 {
     }
 }
 
-impl<'a> FromNetworkOrder<'a> for u8 {
-    fn from_network_order(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<()> {
+impl FromNetworkOrder for u8 {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<()> {
         *self = buffer.read_u8()?;
         Ok(())
     }
@@ -50,7 +50,7 @@ impl_primitive!(f64, write_f64, read_f64);
 
 impl ToNetworkOrder for char {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer = Vec::new();;
     /// assert_eq!('💯'.to_network_order(&mut buffer).unwrap(), 4);
@@ -64,10 +64,10 @@ impl ToNetworkOrder for char {
     }
 }
 
-impl<'a> FromNetworkOrder<'a> for char {
+impl FromNetworkOrder for char {
     /// ```
     /// use std::io::Cursor;
-    /// use type2net::FromNetworkOrder;
+    /// use type2network::FromNetworkOrder;
     ///
     /// let b = vec![0, 1, 244, 175];
     /// let mut buffer = Cursor::new(b.as_slice());
@@ -75,7 +75,7 @@ impl<'a> FromNetworkOrder<'a> for char {
     /// assert!(c.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(c, '💯');
     /// ```
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
         // convert first to u32
         let mut u = 0_u32;
         u.from_network_order(buffer)?;
@@ -87,7 +87,7 @@ impl<'a> FromNetworkOrder<'a> for char {
 
 impl ToNetworkOrder for &[u8] {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
@@ -101,7 +101,7 @@ impl ToNetworkOrder for &[u8] {
 
 impl<'a> ToNetworkOrder for &'a str {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
@@ -115,7 +115,7 @@ impl<'a> ToNetworkOrder for &'a str {
 
 impl ToNetworkOrder for String {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert!(String::from("I ❤ 東京").to_network_order(&mut buffer).is_ok());
@@ -127,8 +127,8 @@ impl ToNetworkOrder for String {
     }
 }
 
-// impl<'a> FromNetworkOrder<'a> for String {
-//     fn from_network_order(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<()> {
+// impl<'a> FromNetworkOrder for String {
+//     fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<()> {
 //         // get a reference on [u8]
 //         let position = buffer.position() as usize;
 //         let inner_data = buffer.get_ref();
@@ -150,7 +150,7 @@ impl ToNetworkOrder for String {
 
 impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert_eq!(Some(0xFF_u8).to_network_order(&mut buffer).unwrap(), 1);
@@ -170,10 +170,10 @@ impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     }
 }
 
-impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
+impl<T: FromNetworkOrder> FromNetworkOrder for Option<T> {
     /// ```
     /// use std::io::Cursor;
-    /// use type2net::FromNetworkOrder;
+    /// use type2network::FromNetworkOrder;
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
@@ -187,7 +187,7 @@ impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v.unwrap(), 0x12345678);
     /// ```
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
         if self.is_none() {
             Ok(())
         } else {
@@ -198,7 +198,7 @@ impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
 
 impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert_eq!([0xFFFF_u16; 10].to_network_order(&mut buffer).unwrap(), 20);
@@ -221,10 +221,10 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
     }
 }
 
-impl<'a, T: FromNetworkOrder<'a>, const N: usize> FromNetworkOrder<'a> for [T; N] {
+impl<T: FromNetworkOrder, const N: usize> FromNetworkOrder for [T; N] {
     /// ```
     /// use std::io::Cursor;
-    /// use type2net::FromNetworkOrder;
+    /// use type2network::FromNetworkOrder;
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
@@ -238,7 +238,7 @@ impl<'a, T: FromNetworkOrder<'a>, const N: usize> FromNetworkOrder<'a> for [T; N
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v, [0x1234_u16, 0x5678]);
     /// ```
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
         for x in self {
             x.from_network_order(buffer)?;
         }
@@ -251,7 +251,7 @@ where
     T: ToNetworkOrder,
 {
     /// ```
-    /// use type2net::ToNetworkOrder;
+    /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let v = vec![[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]];
@@ -270,13 +270,13 @@ where
     }
 }
 
-impl<'a, T> FromNetworkOrder<'a> for Vec<T>
+impl<T> FromNetworkOrder for Vec<T>
 where
-    T: FromNetworkOrder<'a>,
+    T: FromNetworkOrder,
 {
     /// ```
     /// use std::io::Cursor;
-    /// use type2net::FromNetworkOrder;
+    /// use type2network::FromNetworkOrder;
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
@@ -284,7 +284,7 @@ where
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v, &[0x1234_u16, 0x5678]);
     /// ```
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
         for item in self {
             item.from_network_order(buffer)?;
         }

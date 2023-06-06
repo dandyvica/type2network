@@ -1,5 +1,5 @@
 //Non primitive types
-use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
+use crate::{FromNetworkOrder, ToNetworkOrder};
 use std::io::{Cursor, Error, ErrorKind, Result};
 
 pub struct TLV<T, L, V> {
@@ -23,13 +23,13 @@ where
     }
 }
 
-impl<'a, T, L, V> FromNetworkOrder<'a> for TLV<T, L, V>
+impl<T, L, V> FromNetworkOrder for TLV<T, L, V>
 where
-    T: FromNetworkOrder<'a>,
-    L: FromNetworkOrder<'a>,
-    V: FromNetworkOrder<'a>,
+    T: FromNetworkOrder,
+    L: FromNetworkOrder,
+    V: FromNetworkOrder,
 {
-    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
         self.tag.from_network_order(buffer)?;
         self.length.from_network_order(buffer)?;
         self.value.from_network_order(buffer)?;
