@@ -1,0 +1,70 @@
+//Non primitive types
+use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
+use std::io::{Cursor, Error, ErrorKind, Result};
+
+pub struct TLV<T, L, V> {
+    tag: T,
+    length: L,
+    value: V,
+}
+
+impl<T, L, V> ToNetworkOrder for TLV<T, L, V>
+where
+    T: ToNetworkOrder,
+    L: ToNetworkOrder,
+    V: ToNetworkOrder,
+{
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+        let mut length = self.tag.to_network_order(buffer)?;
+        length += self.length.to_network_order(buffer)?;
+        length += self.value.to_network_order(buffer)?;
+
+        Ok(length)
+    }
+}
+
+impl<'a, T, L, V> FromNetworkOrder<'a> for TLV<T, L, V>
+where
+    T: FromNetworkOrder<'a>,
+    L: FromNetworkOrder<'a>,
+    V: FromNetworkOrder<'a>,
+{
+    fn from_network_order(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+        self.tag.from_network_order(buffer)?;
+        self.length.from_network_order(buffer)?;
+        self.value.from_network_order(buffer)?;
+
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::test_helpers::{from_network_helper, to_network_helper};
+
+    #[test]
+    fn tlv() {
+        type T1 = TLV<u16, u16, Vec<u8>>;
+
+        let t1 = T1 {
+            tag: 0x1234,
+            length: 0x5678,
+            value: vec![0x72, 0x26, 0x9A, 0x33],
+        };
+
+        to_network_helper(t1, 8, &[0x12, 0x34, 0x56, 0x78, 0x72, 0x26, 0x9A, 0x33]);
+
+        let buf = vec![0x12, 0x34, 0x56, 0x78, 0x72, 0x26, 0x9A, 0x33];
+        let mut buffer = Cursor::new(buf.as_slice());
+        let mut v = T1 {
+            tag: 0,
+            length: 0,
+            value: vec![0u8; 4],
+        };
+        assert!(v.from_network_order(&mut buffer).is_ok());
+        assert_eq!(v.tag, 0x1234);
+        assert_eq!(v.length, 0x5678);
+        assert_eq!(v.value, vec![0x72, 0x26, 0x9A, 0x33]);
+    }
+}
