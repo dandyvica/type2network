@@ -33,7 +33,7 @@ impl StructDeriveBuilder {
 
         quote! {
             impl #impl_generics ToNetworkOrder for #name #ty_generics #where_clause {
-                fn to_network_order<V: std::io::Write>(&self, buffer: &mut V) -> std::io::Result<usize> {
+                fn to_network_order<W: std::io::Write>(&self, buffer: &mut W) -> std::io::Result<usize> {
                     let mut length = 0usize;
                     #( #method_calls)*
                     Ok(length)
@@ -68,7 +68,7 @@ impl StructDeriveBuilder {
 
         quote! {
             impl #impl_generics FromNetworkOrder for #name #ty_generics #where_clause {
-                fn from_network_order<'t2n>(&mut self, buffer: &mut std::io::Cursor<&'t2n [u8]>) -> std::io::Result<()> {
+                fn from_network_order<R: std::io::Read>(&mut self, buffer: &mut R) -> std::io::Result<()> {
                     #( #method_calls)*
                     Ok(())
                 }

@@ -1,6 +1,6 @@
 // some tests for structs
 use type2network::{FromNetworkOrder, ToNetworkOrder};
-use type2network_derive::ToNetwork;
+use type2network_derive::{FromNetwork, ToNetwork};
 
 pub fn to_network_helper<T: ToNetworkOrder>(val: T, size: usize, v: &[u8]) {
     let mut buffer: Vec<u8> = Vec::new();
@@ -10,7 +10,7 @@ pub fn to_network_helper<T: ToNetworkOrder>(val: T, size: usize, v: &[u8]) {
 
 #[test]
 fn struct_basic() {
-    #[derive(ToNetwork)]
+    #[derive(ToNetwork, FromNetwork)]
     struct Point {
         x: u16,
         y: u16,

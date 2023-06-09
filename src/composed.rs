@@ -29,7 +29,7 @@ where
     L: FromNetworkOrder,
     V: FromNetworkOrder,
 {
-    fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&'a [u8]>) -> Result<()> {
+    fn from_network_order<T: Read>(&mut self, buffer: &mut T) -> Result<()> {
         self.tag.from_network_order(buffer)?;
         self.length.from_network_order(buffer)?;
         self.value.from_network_order(buffer)?;
