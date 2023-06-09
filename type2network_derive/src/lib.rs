@@ -4,9 +4,9 @@ use syn::{parse_macro_input, Data, DeriveInput, DataStruct};
 use proc_macro::TokenStream;
 use quote::{quote, ToTokens};
 
-mod visitor;
-use visitor::{StructDeriveBuilder, StructBuilder};
-use visitor::Visitor;
+mod struct_builder;
+use struct_builder::{StructDeriveBuilder, StructBuilder};
+use struct_builder::Visitor;
 
 #[proc_macro_derive(ToNetwork)]
 pub fn to_network(input: TokenStream) -> TokenStream {

@@ -14,7 +14,7 @@ where
     L: ToNetworkOrder,
     V: ToNetworkOrder,
 {
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: V) -> Result<usize> {
         let mut length = self.tag.to_network_order(buffer)?;
         length += self.length.to_network_order(buffer)?;
         length += self.value.to_network_order(buffer)?;

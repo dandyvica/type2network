@@ -1,12 +1,12 @@
 //! All functions/trait to convert DNS structures to network order back & forth
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{Cursor, Error, ErrorKind, Result};
+use std::io::{Cursor, Error, ErrorKind, Result, Write};
 
 use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
 
 // define impl for signed integers
 impl ToNetworkOrder for i8 {
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         buffer.write_i8(*self)?;
         Ok(1)
     }
@@ -26,7 +26,7 @@ impl_primitive!(i128, write_i128, read_i128);
 
 // define impl for unsigned integers
 impl ToNetworkOrder for u8 {
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         buffer.write_u8(*self)?;
         Ok(1)
     }
@@ -56,10 +56,10 @@ impl ToNetworkOrder for char {
     /// assert_eq!('💯'.to_network_order(&mut buffer).unwrap(), 4);
     /// assert_eq!(buffer, [0, 1, 244, 175]);
     /// ```
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         let u = *self as u32;
         u.to_network_order(buffer)?;
-        println!("u={} buffer={:?}", u, buffer);
+        //println!("u={} buffer={:?}", u, buffer);
         Ok(std::mem::size_of::<char>())
     }
 }
@@ -93,8 +93,8 @@ impl ToNetworkOrder for &[u8] {
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
-        buffer.append(&mut self.to_vec());
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
+        buffer.write(&mut self.to_vec())?;
         Ok(self.len())
     }
 }
@@ -107,8 +107,8 @@ impl<'a> ToNetworkOrder for &'a str {
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
-        buffer.append(&mut self.as_bytes().to_vec());
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
+        buffer.write(&mut self.as_bytes().to_vec())?;
         Ok(self.len())
     }
 }
@@ -121,8 +121,8 @@ impl ToNetworkOrder for String {
     /// assert!(String::from("I ❤ 東京").to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[73, 32, 226, 157, 164, 32, 230, 157, 177, 228, 186, 172]);
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
-        buffer.append(&mut self.as_bytes().to_vec());
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
+        buffer.write(&mut self.as_bytes().to_vec())?;
         Ok(self.len())
     }
 }
@@ -161,7 +161,7 @@ impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     /// assert_eq!(r.to_network_order(&mut buffer).unwrap(), 0);
     /// assert!(buffer.is_empty());
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         if self.is_none() {
             Ok(0)
         } else {
@@ -204,7 +204,7 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
     /// assert_eq!([0xFFFF_u16; 10].to_network_order(&mut buffer).unwrap(), 20);
     /// assert_eq!(buffer, &[0xFF; 20]);
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         let mut length = 0usize;
         let mut buf: Vec<u8> = Vec::new();
 
@@ -213,7 +213,7 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
             length += x.to_network_order(&mut buf)?;
             println!("array ToNetworkOrder length={}", length);
 
-            buffer.append(&mut buf);
+            buffer.write(&mut buf)?;
             buf.clear();
         }
 
@@ -258,7 +258,7 @@ where
     /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize> {
+    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize> {
         let mut length = 0usize;
 
         // copy data for each element

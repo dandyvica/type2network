@@ -47,8 +47,5 @@ fn struct_one_typeparam() {
         x: 0x1234,
         y: 0x5678,
     };
-    // let mut buffer: Vec<u8> = Vec::new();
-    // assert_eq!(pt.to_network_order(&mut buffer).unwrap(), 4);
-    // assert_eq!(buffer,&[0x12, 0x34, 0x56, 0x78] );
     to_network_helper(pt, 4, &[0x12, 0x34, 0x56, 0x78]);
 }

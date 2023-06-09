@@ -1,9 +1,9 @@
-use std::io::{Cursor, Result};
+use std::io::{Cursor, Result, Read, Write};
 
 // function to convert to network order (big-endian)
 pub trait ToNetworkOrder {
     // copy structure data to a network-order buffer
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize>;
+    fn to_network_order<T: Write>(&self, buffer: &mut T) -> Result<usize>;
 }
 
 // function to convert from network order (big-endian)
@@ -13,7 +13,7 @@ pub trait FromNetworkOrder {
 }
 
 //all definitions of to_network_order()/from_network_order() for standard types
-pub mod composed;
+//pub mod composed;
 pub mod primitive;
 
 // helper macro for boiler plate definitions
@@ -21,7 +21,7 @@ pub mod primitive;
 macro_rules! impl_primitive {
     ($t:ty, $fw:ident, $fr:ident) => {
         impl ToNetworkOrder for $t {
-            fn to_network_order(&self, v: &mut Vec<u8>) -> std::io::Result<usize> {
+            fn to_network_order<T: Write>(&self, v: &mut T) -> std::io::Result<usize> {
                 v.$fw::<BigEndian>(*self as $t)?;
                 Ok(std::mem::size_of::<$t>())
             }
