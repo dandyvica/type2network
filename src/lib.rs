@@ -1,50 +1,31 @@
-use std::io::{Cursor, Read, Result, Write};
+use std::io::{Read, Write};
+
+use crate::error::Error;
+//pub (crate) type Result
 
 // function to convert to network order (big-endian)
 pub trait ToNetworkOrder {
     // copy structure data to a network-order buffer
-    fn to_network_order<T: Write>(&self, buffer: &mut T) -> Result<usize>;
+    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error>;
 }
 
 // function to convert from network order (big-endian)
 pub trait FromNetworkOrder {
     // copy from a network-order buffer to a structure
-    fn from_network_order<T: Read>(&mut self, v: &mut T) -> Result<()>;
+    fn from_network_order<R: Read>(&mut self, v: &mut R) -> Result<(), Error>;
 }
 
 //all definitions of to_network_order()/from_network_order() for standard types
 //pub mod composed;
+pub mod cell;
+pub mod error;
+pub mod generics;
 pub mod primitive;
-
-// helper macro for boiler plate definitions
-#[macro_export]
-macro_rules! impl_primitive {
-    ($t:ty, $fw:ident, $fr:ident) => {
-        impl ToNetworkOrder for $t {
-            fn to_network_order<W: Write>(&self, buffer: &mut W) -> std::io::Result<usize> {
-                buffer.$fw::<BigEndian>(*self as $t)?;
-                Ok(std::mem::size_of::<$t>())
-            }
-        }
-
-        impl FromNetworkOrder for $t {
-            fn from_network_order<T: Read>(&mut self, v: &mut T) -> Result<()> {
-                let value = v.$fr::<BigEndian>()?;
-                match <$t>::try_from(value) {
-                    Ok(ct) => {
-                        *self = ct;
-                        Ok(())
-                    }
-                    Err(e) => Err(std::io::Error::new(std::io::ErrorKind::Other, e)),
-                }
-            }
-        }
-    };
-}
 
 #[cfg(test)]
 pub mod test_helpers {
     use super::*;
+    use std::io::Cursor;
 
     // used for boiler plate unit tests for integers
     pub fn to_network_helper<T: ToNetworkOrder>(val: T, size: usize, v: &[u8]) {
