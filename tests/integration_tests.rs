@@ -1,15 +1,17 @@
+use byteorder::{BigEndian, WriteBytesExt};
+
 // some tests for structs
 use type2network::{error::Error, FromNetworkOrder, ToNetworkOrder};
 use type2network_derive::{FromNetwork, ToNetwork};
 
-pub fn to_network_helper<T: ToNetworkOrder>(val: &T, size: usize, v: &[u8]) {
+// used for boiler plate unit tests for integers, floats etc
+pub fn to_network_test<T: ToNetworkOrder>(val: &T, size: usize, v: &[u8]) {
     let mut buffer: Vec<u8> = Vec::new();
     assert_eq!(val.to_network_order(&mut buffer).unwrap(), size);
     assert_eq!(buffer, v);
 }
 
-// used for boiler plate unit tests for integers, floats etc
-pub fn from_network_helper<'a, T>(def: Option<T>, val: &T, buf: &'a Vec<u8>)
+pub fn from_network_test<'a, T>(def: Option<T>, val: &T, buf: &'a Vec<u8>)
 where
     T: FromNetworkOrder + Default + std::fmt::Debug + std::cmp::PartialEq,
 {
@@ -24,6 +26,7 @@ where
 }
 
 #[test]
+#[allow(dead_code)]
 fn struct_unit() {
     #[derive(ToNetwork, FromNetwork)]
     struct Unit;
@@ -41,8 +44,8 @@ fn struct_basic() {
         x: 0x1234,
         y: 0x5678,
     };
-    to_network_helper(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
-    from_network_helper(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
+    to_network_test(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
 }
 
 #[test]
@@ -51,8 +54,8 @@ fn struct_tuple_basic() {
     struct Point(u16, u16);
 
     let pt = Point(0x1234, 0x5678);
-    to_network_helper(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
-    from_network_helper(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
+    to_network_test(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
 }
 
 #[test]
@@ -70,8 +73,8 @@ fn struct_one_typeparam() {
         x: 0x1234,
         y: 0x5678,
     };
-    to_network_helper(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
-    from_network_helper(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
+    to_network_test(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
 }
 
 #[test]
@@ -92,12 +95,44 @@ fn struct_lifetime() {
         y: Some(0x090A),
         z: Some(vec![None, Some(0x0B), Some(0x0C)]),
     };
-    to_network_helper(
+    to_network_test(
         &pt,
         12,
         &[
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C,
         ],
     );
-    // from_network_helper(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
+}
+
+#[test]
+#[allow(dead_code)]
+fn enum_simple() {
+    #[derive(ToNetwork)]
+    enum Bool {
+        True,
+        False,
+    }
+
+    let b = Bool::True;
+    to_network_test(&b, 1, &[0x00]);
+}
+
+#[test]
+#[allow(dead_code)]
+fn enum_message() {
+    #[derive(ToNetwork)]
+    enum Message {
+        Move { x: u16, y: u16 },
+        Write(String),
+        ChangeColor(u16, u16, u16),
+    }
+
+    let m = Message::Move {
+        x: 0x1234,
+        y: 0x5678,
+    };
+    to_network_test(&m, 4, &[0x12, 0x34, 0x56, 0x78]);
+
+    let m = Message::ChangeColor(0x1234, 0x5678, 0x9ABC);
+    to_network_test(&m, 6, &[0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC]);
 }

@@ -1,6 +1,7 @@
 //Non primitive types
-use crate::{FromNetworkOrder, ToNetworkOrder};
 use std::io::{Cursor, Error, ErrorKind, Result};
+
+use crate::{FromNetworkOrder, ToNetworkOrder};
 
 pub struct TLV<T, L, V> {
     tag: T,
@@ -41,7 +42,7 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::test_helpers::{from_network_helper, to_network_helper};
+    use crate::test_helpers::{from_network_test, to_network_test};
 
     #[test]
     fn tlv() {
@@ -53,7 +54,7 @@ mod tests {
             value: vec![0x72, 0x26, 0x9A, 0x33],
         };
 
-        to_network_helper(t1, 8, &[0x12, 0x34, 0x56, 0x78, 0x72, 0x26, 0x9A, 0x33]);
+        to_network_test(t1, 8, &[0x12, 0x34, 0x56, 0x78, 0x72, 0x26, 0x9A, 0x33]);
 
         let buf = vec![0x12, 0x34, 0x56, 0x78, 0x72, 0x26, 0x9A, 0x33];
         let mut buffer = Cursor::new(buf.as_slice());

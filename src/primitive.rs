@@ -121,7 +121,7 @@ impl ToNetworkOrder for &[u8] {
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
     fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
-        buffer.write(&mut self.to_vec())?;
+        _ = buffer.write(self.as_ref())?;
         Ok(self.len())
     }
 }
@@ -135,7 +135,7 @@ impl<'a> ToNetworkOrder for &'a str {
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
     fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
-        buffer.write(&mut self.as_bytes().to_vec())?;
+        _ = buffer.write(self.as_bytes())?;
         Ok(self.len())
     }
 }
@@ -149,7 +149,7 @@ impl ToNetworkOrder for String {
     /// assert_eq!(buffer, &[73, 32, 226, 157, 164, 32, 230, 157, 177, 228, 186, 172]);
     /// ```    
     fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
-        buffer.write(&mut self.as_bytes().to_vec())?;
+        _ = buffer.write(self.as_bytes())?;
         Ok(self.len())
     }
 }
@@ -177,54 +177,53 @@ impl ToNetworkOrder for String {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::test_helpers::{from_network_helper, to_network_helper};
+    use crate::test_helpers::{from_network_test, to_network_test};
 
     #[test]
     fn to_net() {
         // unsigned ints
-        to_network_helper(255_u8, 1, &[0xFF]);
-        to_network_helper(0x1234_u16, 2, &[0x12, 0x34]);
-        to_network_helper(0x12345678_u32, 4, &[0x12, 0x34, 0x56, 0x78]);
-        to_network_helper(
+        to_network_test(255_u8, 1, &[0xFF]);
+        to_network_test(0x1234_u16, 2, &[0x12, 0x34]);
+        to_network_test(0x12345678_u32, 4, &[0x12, 0x34, 0x56, 0x78]);
+        to_network_test(
             0x1234567812345678_u64,
             8,
             &[0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78],
         );
 
         // floats
-        to_network_helper(std::f32::consts::PI, 4, &[0x40, 0x49, 0x0f, 0xdb]);
-        to_network_helper(
+        to_network_test(std::f32::consts::PI, 4, &[0x40, 0x49, 0x0f, 0xdb]);
+        to_network_test(
             std::f64::consts::PI,
             8,
             &[0x40, 0x09, 0x21, 0xfb, 0x54, 0x44, 0x2d, 0x18],
         );
 
         // char
-        to_network_helper('💯', 4, &[0, 1, 244, 175]);
+        to_network_test('💯', 4, &[0, 1, 244, 175]);
     }
 
     #[test]
     fn from_net() {
         // unsigned ints
-        from_network_helper(None, 255_u8, &vec![0xFF]);
-        from_network_helper(None, 0x1234_u16, &vec![0x12, 0x34]);
-        from_network_helper(None, 0x12345678_u32, &vec![0x12, 0x34, 0x56, 0x78]);
-        from_network_helper(
+        from_network_test(None, 255_u8, &vec![0xFF]);
+        from_network_test(None, 0x1234_u16, &vec![0x12, 0x34]);
+        from_network_test(None, 0x12345678_u32, &vec![0x12, 0x34, 0x56, 0x78]);
+        from_network_test(
             None,
             0x1234567812345678_u64,
             &vec![0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x56, 0x78],
         );
 
         // floats
-        from_network_helper(None, std::f32::consts::PI, &vec![0x40, 0x49, 0x0f, 0xdb]);
-        from_network_helper(
+        from_network_test(None, std::f32::consts::PI, &vec![0x40, 0x49, 0x0f, 0xdb]);
+        from_network_test(
             None,
             std::f64::consts::PI,
             &vec![0x40, 0x09, 0x21, 0xfb, 0x54, 0x44, 0x2d, 0x18],
         );
 
         // char
-        from_network_helper(None, '💯', &vec![0, 1, 244, 175]);
+        from_network_test(None, '💯', &vec![0, 1, 244, 175]);
     }
 }

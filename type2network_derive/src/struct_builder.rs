@@ -11,7 +11,7 @@ impl StructDeriveBuilder {
             return quote!();
         }
 
-        let name = &ast.ident;
+        let struct_name = &ast.ident;
 
         let method_calls = ds.fields.iter().enumerate().map(|field| {
             match &field.1.ident {
@@ -34,7 +34,7 @@ impl StructDeriveBuilder {
         let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
         quote! {
-            impl #impl_generics ToNetworkOrder for #name #ty_generics #where_clause {
+            impl #impl_generics ToNetworkOrder for #struct_name #ty_generics #where_clause {
                 fn to_network_order<W: std::io::Write>(&self, buffer: &mut W) -> Result<usize, Error> {
                     let mut length = 0usize;
                     #( #method_calls)*
@@ -50,7 +50,7 @@ impl StructDeriveBuilder {
             return quote!();
         }
 
-        let name = &ast.ident;
+        let struct_name = &ast.ident;
 
         // call from_network_order() call for each field
         let method_calls = ds.fields.iter().enumerate().map(|field| {
@@ -74,7 +74,7 @@ impl StructDeriveBuilder {
         let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
         quote! {
-            impl #impl_generics FromNetworkOrder for #name #ty_generics #where_clause {
+            impl #impl_generics FromNetworkOrder for #struct_name #ty_generics #where_clause {
                 fn from_network_order<R: std::io::Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
                     #( #method_calls)*
                     Ok(())
@@ -87,8 +87,6 @@ impl StructDeriveBuilder {
     fn is_unit(ds: &DataStruct) -> bool {
         matches!(ds.fields, Fields::Unit)
     }
-
-
 }
 
 // #[derive(Debug, Default)]

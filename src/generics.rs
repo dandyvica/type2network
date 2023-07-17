@@ -1,21 +1,10 @@
 //! All functions/trait to convert DNS structures to network order back & forth
-//use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{Read, Write};
+use std::marker::PhantomData;
+use std::cell::Cell;
 
 use crate::error::Error;
 use crate::{FromNetworkOrder, ToNetworkOrder};
-
-// impl<'a, T: ToNetworkOrder> ToNetworkOrder for &'a T {
-//     fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
-//         self.to_network_order(buffer)
-//     }
-// }
-
-// impl<'a, T: FromNetworkOrder> FromNetworkOrder for &'a T {
-//     fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
-//         self.from_network_order(buffer)
-//     }
-// }
 
 impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     /// ```
@@ -81,7 +70,7 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
             // first convert x to network bytes
             length += x.to_network_order(&mut buf)?;
 
-            buffer.write(&mut buf)?;
+            _ = buffer.write(&buf)?;
             buf.clear();
         }
 
@@ -160,39 +149,73 @@ where
     }
 }
 
-// impl<T> ToNetworkOrder for Box<T>
-// where
-//     T: ToNetworkOrder,
-// {
-//     fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
-//         self.to_network_order(buffer)
-//     }
-// }
+impl<T> ToNetworkOrder for Box<T>
+where
+    T: ToNetworkOrder,
+{
+    /// ```
+    /// use type2network::ToNetworkOrder;
+    ///
+    /// let mut buffer: Vec<u8> = Vec::new();
+    /// let v = Box::new(vec![[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]]);
+    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(&buffer, &[0xFF; 18]);
+    /// ```    
+    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+        use std::ops::Deref;
+        self.deref().to_network_order(buffer)
+    }
+}
 
-// impl<T> FromNetworkOrder for Box<T>
-// where
-//     T: FromNetworkOrder,
-// {
-//     fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
-//         self.from_network_order(buffer)
-//     }
-// }
+impl<T> FromNetworkOrder for Box<T>
+where
+    T: FromNetworkOrder,
+{
+    /// ```
+    /// use std::io::Cursor;
+    /// use std::ops::Deref;
+    /// use type2network::FromNetworkOrder;
+    ///
+    /// let b = vec![0x12, 0x34, 0x56, 0x78];
+    /// let mut buffer = Cursor::new(b.as_slice());
+    /// let mut v = Box::new(vec![0_u16;2]);
+    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
+    /// ```    
+    fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+        use std::ops::DerefMut;
+        self.deref_mut().from_network_order(buffer)
+    }
+}
+
+impl<T> ToNetworkOrder for PhantomData<T>
+{
+    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+        Ok(0)
+    }
+}
+
+impl<T> FromNetworkOrder for PhantomData<T>
+{
+    fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+        Ok(())
+    }
+}
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::test_helpers::{from_network_helper, to_network_helper};
+    use crate::test_helpers::{from_network_test, to_network_test};
 
     #[test]
     fn array() {
         // Array of 5 Option<u16>
-        to_network_helper(
+        to_network_test(
             [None, Some(0x1234_u16), None, Some(0x5678_u16), None],
             4,
             &[0x12_u8, 0x34, 0x56, 0x78],
         );
 
-        from_network_helper(
+        from_network_test(
             Some([Some(0_u16); 2]),
             [Some(0x1234_u16), Some(0x5678_u16)],
             &vec![0x12_u8, 0x34, 0x56, 0x78],
@@ -207,7 +230,7 @@ mod tests {
             [Some(0x2345_u16), Some(0x6789_u16)],
             [Some(0x3456_u16), Some(0x789A_u16)],
         ];
-        to_network_helper(
+        to_network_test(
             val,
             12,
             &[
@@ -215,7 +238,7 @@ mod tests {
             ],
         );
 
-        from_network_helper(
+        from_network_test(
             Some(vec![[Some(0_u16); 2]; 3]),
             vec![
                 [Some(0x1234_u16), Some(0x5678_u16)],

@@ -1,92 +1,136 @@
-use quote::{quote, format_ident, ToTokens};
-use syn::{DataStruct, DeriveInput, Fields, Index, ItemStruct, DataEnum, Variant, Ident, FieldsNamed, FieldsUnnamed};
+use proc_macro2::Span;
+use quote::quote;
+use syn::{DataEnum, DeriveInput, Fields, Ident, Variant};
 
 pub struct EnumDeriveBuilder;
 
 impl EnumDeriveBuilder {
     pub fn to_network(ast: &DeriveInput, de: &DataEnum) -> proc_macro2::TokenStream {
-        let name = &ast.ident;
+        let enum_name = &ast.ident;
 
-        for v in de.variants.iter() {
-           println!("ident={} variant={} len={}", name, v.ident, v.fields.len());
-
-            explore_variant(v);
-
-            //println!("discriminants **************> {:?}", v.discriminant);
-        }
-
-        // let method_calls = de.variants.iter().map(|var| {
-        //     quote! {
-        //         #name::#var(x) => ToNetworkOrder::to_network_order(x, buffer),
+        // test attributes
+        // for a in ast.attrs.iter() {
+        //     if let Some(repr) = a.path.get_ident() {
+        //         println!("attr={}", repr.to_string());
         //     }
-        // });        
 
+        //     let ty = a.parse_args::<syn::Type>();
+        //     if let Ok(ty) = ty {
+        //         println!("ty={:?}", ty);
+        //     }
 
-        quote!(
-            // impl ToNetworkOrder for #name {
-            //     fn to_network_order(&self, buffer: &mut Vec<u8>) -> Result<usize, Error> {
-            //         match self {
-            //             #( #method_calls)*
-            //         }
-            //     }
-            // }
-        )
+        // }
 
-        
-    }
+        println!("is_unit_only={}", EnumDeriveBuilder::is_unit_only(ast, de));
 
+        let arms = de
+            .variants
+            .iter()
+            .map(|v| EnumDeriveBuilder::build_variant_arm(enum_name, v));
 
+        let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-
-
-}
-
-fn explore_variant(var: &Variant)  {
-
-    println!("var={}", var.to_token_stream());
-    let variant_code = var.to_token_stream();
-
-    match &var.fields {
-        Fields::Unnamed(unnamed) => println!("variant {} is unnamed", var.ident),
-        Fields::Named(named) => {
-            let method_calls = generate_named(named);
-            let code = quote!(
-                #variant_code => {
-                    let mut length = 0usize;
-                    #method_calls
-                    Ok(length)
+        let code = quote! {
+            impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
+                fn to_network_order<W: std::io::Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+                    match self {
+                        #( #arms)*
+                    }
                 }
-            );
-            println!("generated code = {}", code);
-        },
-        Fields::Unit => println!("variant {} is unit", var.ident),
+            }
+        };
+
+        println!("{}", code);
+
+        code
     }
-}
 
-fn generate_named(named: &FieldsNamed) -> proc_macro2::TokenStream {
-    println!("generate_named => {}", named.to_token_stream());
+    // Test whether all enum variant are unit
+    fn is_unit_only(_ast: &DeriveInput, de: &DataEnum) -> bool {
+        de.variants.iter().all(|v| matches!(v.fields, Fields::Unit))
+    }
 
-    let method_calls = named.named.iter().map(|f| {
-        let field_name = f.ident.as_ref().unwrap();
-        quote! {
-            length += ToNetworkOrder::to_network_order(#field_name, buffer)?;
+    // Build the code for each variant arm
+    // Ex: if enum is:
+    //
+    // #[repr(u8)]
+    // enum Message {
+    //     Ok = 0,
+    //     Quit = 1,
+    //     Move { x: u16, y: u16 },
+    //     Write(String),
+    //     ChangeColor(u16, u16, u16),
+    // }
+    //
+    // then this function will build the arm for the variant passed as the 2nd parameter.
+    // Ex:
+    //
+    // Message::ChangeColor(f0, f1, f2) => {
+    //        let mut length = 0usize ;
+    //        length += ToNetworkOrder ::to_network_order(f0, buffer)?;
+    //        length += ToNetworkOrder ::to_network_order(f1, buffer)?;
+    //        length += ToNetworkOrder ::to_network_order(f2, buffer)?;
+    //        Ok(length)
+    // },
+    fn build_variant_arm(enum_name: &Ident, variant: &Variant) -> proc_macro2::TokenStream {
+        let variant_ident = &variant.ident;
+
+        match &variant.fields {
+            // unnamed variant like: ChangeColor(i32, i32, i32)
+            Fields::Unnamed(_) => {
+                let field_names = (0..variant.fields.len())
+                    .map(|i| Ident::new(&format!("f{}", i), Span::call_site()));
+
+                let method_calls = field_names.clone().map(|f| {
+                    quote! {
+                        length += ToNetworkOrder::to_network_order(#f, buffer)?;
+                    }
+                });
+
+                quote! {
+                    #enum_name::#variant_ident(#(#field_names),*) => {
+                        let mut length = 0usize;
+                        #( #method_calls)*
+                        Ok(length)
+                    },
+                }
+            }
+            // named variant like: Move { x: i32, y: i32 }
+            Fields::Named(_) => {
+                let members = variant.fields.iter().map(|f| &f.ident);
+
+                let method_calls = members.clone().map(|f| {
+                    quote! {
+                        length += ToNetworkOrder::to_network_order(#f, buffer)?;
+                    }
+                });
+
+                quote! {
+                    #enum_name::#variant_ident{ #(#members),* } => {
+                        let mut length = 0usize;
+                        #( #method_calls)*
+                        Ok(length)
+                    },
+                }
+            }
+            // unit variant like: Quit = 1
+            Fields::Unit => {
+                quote! {
+                    #enum_name::#variant_ident => {
+                        let value = #enum_name::#variant_ident;
+                        let size = std::mem::size_of_val(&value);
+                        match size {
+                            1 => buffer.write_u8(value as u8)?,
+                            2 => buffer.write_u16::<BigEndian>(value as u16)?,
+                            4 => buffer.write_u32::<BigEndian>(value as u32)?,
+                            8 => buffer.write_u64::<BigEndian>(value as u64)?,
+                            _ => unimplemented!("size of variant is not supported"),
+                        }
+
+                        Ok(size)
+                    },
+                }
+            }
         }
-    });
-
-    quote!(
-        #( #method_calls)*
-    )
-}
-
-fn generate_unnamed(unnamed: &FieldsUnnamed) -> proc_macro2::TokenStream {
-    let method_calls = unnamed.unnamed.iter().map(|f| {
-        let field_name = f.ident.as_ref().unwrap();
-        quote! {
-            length += ToNetworkOrder::to_network_order(#field_name, buffer)?;
-        }
-    });
-
-    quote!(
-        #( #method_calls)*
-    )
+    }
 }

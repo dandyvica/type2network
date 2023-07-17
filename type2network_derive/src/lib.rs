@@ -5,11 +5,10 @@ use proc_macro::TokenStream;
 //use quote::{quote, ToTokens};
 
 mod struct_builder;
-use struct_builder::{StructDeriveBuilder, StructBuilder};
+use struct_builder::{StructBuilder, StructDeriveBuilder};
 
 mod enum_builder;
 use enum_builder::EnumDeriveBuilder;
-
 
 #[proc_macro_derive(ToNetwork)]
 pub fn to_network(input: TokenStream) -> TokenStream {
