@@ -1,8 +1,7 @@
 //! All functions/trait to convert DNS structures to network order back & forth
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{Read, Write};
+use std::io::{Error, ErrorKind, Write};
 
-use crate::error::Error;
 use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
 
 // helper macro for boiler plate definitions
@@ -10,21 +9,24 @@ use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
 macro_rules! impl_primitive {
     ($t:ty, $fw:ident, $fr:ident) => {
         impl ToNetworkOrder for $t {
-            fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+            fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
                 buffer.$fw::<BigEndian>(*self as $t)?;
                 Ok(std::mem::size_of::<$t>())
             }
         }
 
-        impl FromNetworkOrder for $t {
-            fn from_network_order<T: Read>(&mut self, v: &mut T) -> Result<(), Error> {
-                let value = v.$fr::<BigEndian>()?;
+        impl<'a> FromNetworkOrder<'a> for $t {
+            fn from_network_order(
+                &mut self,
+                buffer: &mut std::io::Cursor<&'a [u8]>,
+            ) -> std::io::Result<()> {
+                let value = buffer.$fr::<BigEndian>()?;
                 match <$t>::try_from(value) {
                     Ok(ct) => {
                         *self = ct;
                         Ok(())
                     }
-                    Err(e) => Err(Error::TryFromInt(e.into())),
+                    Err(_) => Err(Error::from(ErrorKind::Unsupported)),
                 }
             }
         }
@@ -33,14 +35,17 @@ macro_rules! impl_primitive {
 
 // define impl for signed integers
 impl ToNetworkOrder for i8 {
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         buffer.write_i8(*self)?;
         Ok(1)
     }
 }
 
-impl FromNetworkOrder for i8 {
-    fn from_network_order<T: Read>(&mut self, buffer: &mut T) -> Result<(), Error> {
+impl<'a> FromNetworkOrder<'a> for i8 {
+    fn from_network_order(
+        &mut self,
+        buffer: &mut std::io::Cursor<&'a [u8]>,
+    ) -> std::io::Result<()> {
         *self = buffer.read_i8()?;
         Ok(())
     }
@@ -53,14 +58,17 @@ impl_primitive!(i128, write_i128, read_i128);
 
 // define impl for unsigned integers
 impl ToNetworkOrder for u8 {
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         buffer.write_u8(*self)?;
         Ok(1)
     }
 }
 
-impl FromNetworkOrder for u8 {
-    fn from_network_order<T: Read>(&mut self, buffer: &mut T) -> Result<(), Error> {
+impl<'a> FromNetworkOrder<'a> for u8 {
+    fn from_network_order(
+        &mut self,
+        buffer: &mut std::io::Cursor<&'a [u8]>,
+    ) -> std::io::Result<()> {
         *self = buffer.read_u8()?;
         Ok(())
     }
@@ -83,7 +91,7 @@ impl ToNetworkOrder for char {
     /// assert_eq!('💯'.to_network_order(&mut buffer).unwrap(), 4);
     /// assert_eq!(buffer, [0, 1, 244, 175]);
     /// ```
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         let u = *self as u32;
         u.to_network_order(buffer)?;
         //println!("u={} buffer={:?}", u, buffer);
@@ -91,7 +99,7 @@ impl ToNetworkOrder for char {
     }
 }
 
-impl FromNetworkOrder for char {
+impl<'a> FromNetworkOrder<'a> for char {
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -102,7 +110,10 @@ impl FromNetworkOrder for char {
     /// assert!(c.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(c, '💯');
     /// ```
-    fn from_network_order<T: Read>(&mut self, buffer: &mut T) -> Result<(), Error> {
+    fn from_network_order(
+        &mut self,
+        buffer: &mut std::io::Cursor<&'a [u8]>,
+    ) -> std::io::Result<()> {
         // convert first to u32
         let mut u = 0_u32;
         u.from_network_order(buffer)?;
@@ -120,7 +131,7 @@ impl ToNetworkOrder for &[u8] {
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         _ = buffer.write(self.as_ref())?;
         Ok(self.len())
     }
@@ -134,7 +145,7 @@ impl<'a> ToNetworkOrder for &'a str {
     /// assert!(&[0x12_u8, 0x34, 0x56, 0x78].to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[0x12, 0x34, 0x56, 0x78]);
     /// ```
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         _ = buffer.write(self.as_bytes())?;
         Ok(self.len())
     }
@@ -148,13 +159,13 @@ impl ToNetworkOrder for String {
     /// assert!(String::from("I ❤ 東京").to_network_order(&mut buffer).is_ok());
     /// assert_eq!(buffer, &[73, 32, 226, 157, 164, 32, 230, 157, 177, 228, 186, 172]);
     /// ```    
-    fn to_network_order<V: Write>(&self, buffer: &mut V) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         _ = buffer.write(self.as_bytes())?;
         Ok(self.len())
     }
 }
 
-// impl<'a> FromNetworkOrder for String {
+// impl<'a> FromNetworkOrder<'a> for String {
 //     fn from_network_order<'a>(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<(), Error> {
 //         // get a reference on [u8]
 //         let position = buffer.position() as usize;

@@ -24,13 +24,13 @@ where
     }
 }
 
-impl<T, L, V> FromNetworkOrder for TLV<T, L, V>
+impl<T, L, V> FromNetworkOrder<'a> for TLV<T, L, V>
 where
     T: FromNetworkOrder,
     L: FromNetworkOrder,
     V: FromNetworkOrder,
 {
-    fn from_network_order<T: Read>(&mut self, buffer: &mut T) -> Result<(), Error> {
+    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         self.tag.from_network_order(buffer)?;
         self.length.from_network_order(buffer)?;
         self.value.from_network_order(buffer)?;

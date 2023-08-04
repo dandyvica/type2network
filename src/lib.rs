@@ -1,26 +1,20 @@
-use std::io::{Read, Write};
-
-//use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-
-use crate::error::Error;
-//pub (crate) type Result
-
 // function to convert to network order (big-endian)
 pub trait ToNetworkOrder {
     // copy structure data to a network-order buffer
-    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error>;
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
 }
 
 // function to convert from network order (big-endian)
-pub trait FromNetworkOrder {
+pub trait FromNetworkOrder<'a> {
     // copy from a network-order buffer to a structure
-    fn from_network_order<R: Read>(&mut self, v: &mut R) -> Result<(), Error>;
+    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>)
+        -> std::io::Result<()>;
 }
 
 //all definitions of to_network_order()/from_network_order() for standard types
 //pub mod composed;
-pub mod cell;
-pub mod error;
+// pub mod cell;
+// pub mod error;
 pub mod generics;
 pub mod primitive;
 
@@ -52,7 +46,7 @@ pub mod test_helpers {
     // used for boiler plate unit tests for integers, floats etc
     pub fn from_network_test<'a, T>(def: Option<T>, val: T, buf: &'a Vec<u8>)
     where
-        T: FromNetworkOrder + Default + std::fmt::Debug + std::cmp::PartialEq,
+        T: FromNetworkOrder<'a> + Default + std::fmt::Debug + std::cmp::PartialEq,
     {
         let mut buffer = Cursor::new(buf.as_slice());
         let mut v: T = if def.is_none() {

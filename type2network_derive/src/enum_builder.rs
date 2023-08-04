@@ -8,19 +8,6 @@ impl EnumDeriveBuilder {
     pub fn to_network(ast: &DeriveInput, de: &DataEnum) -> proc_macro2::TokenStream {
         let enum_name = &ast.ident;
 
-        // test attributes
-        // for a in ast.attrs.iter() {
-        //     if let Some(repr) = a.path.get_ident() {
-        //         println!("attr={}", repr.to_string());
-        //     }
-
-        //     let ty = a.parse_args::<syn::Type>();
-        //     if let Ok(ty) = ty {
-        //         println!("ty={:?}", ty);
-        //     }
-
-        // }
-
         println!("is_unit_only={}", EnumDeriveBuilder::is_unit_only(ast, de));
 
         let arms = de
@@ -32,7 +19,7 @@ impl EnumDeriveBuilder {
 
         let code = quote! {
             impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
-                fn to_network_order<W: std::io::Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+                fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
                     match self {
                         #( #arms)*
                     }

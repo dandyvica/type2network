@@ -13,16 +13,16 @@ use crate::{FromNetworkOrder, ToNetworkOrder};
 //         where
 //             T: ToNetworkOrder + Copy,
 //         {
-//             fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+//             fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
 //                 self.get().to_network_order(buffer)
 //             }
 //         }
 
-//         impl<T> FromNetworkOrder for $t
+//         impl<T> FromNetworkOrder<'a> for $t
 //         where
-//             T: FromNetworkOrder + Default,
+//             T: FromNetworkOrder<'a> + Default,
 //         {
-//             fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+//             fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
 //                 let mut v: T = T::default();
 //                 v.from_network_order(buffer)?;
 
@@ -46,14 +46,14 @@ where
     /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```       
-    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         self.get().to_network_order(buffer)
     }
 }
 
-impl<T> FromNetworkOrder for Cell<T>
+impl<T> FromNetworkOrder<'a> for Cell<T>
 where
-    T: FromNetworkOrder + Default,
+    T: FromNetworkOrder<'a> + Default,
 {
     /// ```
     /// use std::io::Cursor;
@@ -66,7 +66,7 @@ where
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v, Cell::new([0x1234_u16, 0x5678]));
     /// ```      
-    fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v: T = T::default();
         v.from_network_order(buffer)?;
 
@@ -89,7 +89,7 @@ where
     /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```     
-    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         match self.get() {
             None => Ok(0),
             Some(v) => v.to_network_order(buffer),
@@ -97,9 +97,9 @@ where
     }
 }
 
-impl<T> FromNetworkOrder for OnceCell<T>
+impl<T> FromNetworkOrder<'a> for OnceCell<T>
 where
-    T: FromNetworkOrder + Default,
+    T: FromNetworkOrder<'a> + Default,
 {
     /// ```
     /// use std::io::Cursor;
@@ -112,7 +112,7 @@ where
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v.get().unwrap(), &[0x1234_u16, 0x5678]);
     /// ```      
-    fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v: T = T::default();
         v.from_network_order(buffer)?;
 
@@ -136,14 +136,14 @@ where
     /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```      
-    fn to_network_order<W: Write>(&self, buffer: &mut W) -> Result<usize, Error> {
+    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         self.borrow().to_network_order(buffer)
     }
 }
 
-impl<T> FromNetworkOrder for RefCell<T>
+impl<T> FromNetworkOrder<'a> for RefCell<T>
 where
-    T: FromNetworkOrder + Default + std::fmt::Debug,
+    T: FromNetworkOrder<'a> + Default + std::fmt::Debug,
 {
     /// ```
     /// use std::io::Cursor;
@@ -156,7 +156,7 @@ where
     /// assert!(v.from_network_order(&mut buffer).is_ok());
     /// assert_eq!(v, RefCell::new([0x1234_u16, 0x5678]));
     /// ```     
-    fn from_network_order<R: Read>(&mut self, buffer: &mut R) -> Result<(), Error> {
+    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v = T::default();
         v.from_network_order(buffer)?;
 

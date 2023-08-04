@@ -53,7 +53,7 @@ fn derive_helper(input: TokenStream, struct_builder: StructBuilder) -> proc_macr
         _ => unimplemented!("{} is neither a struct, nor an enum", ast.ident.to_string()),
     };
 
-    //println!("code ============> '{}'", code);
+    println!("code ============> '{}'", code);
 
     code.into()
 }
