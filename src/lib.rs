@@ -1,35 +1,19 @@
 // function to convert to network order (big-endian)
 pub trait ToNetworkOrder {
     // copy structure data to a network-order buffer
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
 }
 
 // function to convert from network order (big-endian)
 pub trait FromNetworkOrder<'a> {
     // copy from a network-order buffer to a structure
-    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>)
-        -> std::io::Result<()>;
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()>;
 }
 
-//all definitions of to_network_order()/from_network_order() for standard types
-//pub mod composed;
-// pub mod cell;
-// pub mod error;
+//all definitions of serialize_to()/deserialize_from() for standard types
+pub mod cell;
 pub mod generics;
 pub mod primitive;
-
-// pub fn unit_only_to_network<W: Write, T>(&self, value: T, buffer: &mut W) -> Result<usize, Error> {
-//     let size = std::mem::size_of_val(&value);
-//     match size {
-//         1 => buffer.write_u8(value as u8)?,
-//         2 => buffer.write_u16::<BigEndian>(value as u16)?,
-//         4 => buffer.write_u32::<BigEndian>(value as u32)?,
-//         8 => buffer.write_u64::<BigEndian>(value as u64)?,
-//         _ => todo!(),
-//     }
-
-//     Ok(size)
-// }
 
 #[cfg(test)]
 pub mod test_helpers {
@@ -39,7 +23,7 @@ pub mod test_helpers {
     // used for boiler plate unit tests for integers
     pub fn to_network_test<T: ToNetworkOrder>(val: T, size: usize, v: &[u8]) {
         let mut buffer: Vec<u8> = Vec::new();
-        assert_eq!(val.to_network_order(&mut buffer).unwrap(), size);
+        assert_eq!(val.serialize_to(&mut buffer).unwrap(), size);
         assert_eq!(buffer, v);
     }
 
@@ -54,7 +38,7 @@ pub mod test_helpers {
         } else {
             def.unwrap()
         };
-        assert!(v.from_network_order(&mut buffer).is_ok());
+        assert!(v.deserialize_from(&mut buffer).is_ok());
         assert_eq!(v, val);
     }
 }

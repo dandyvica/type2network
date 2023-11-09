@@ -1,8 +1,9 @@
 //! All functions/trait to convert DNS structures to network order back & forth
 use std::cell::{Cell, OnceCell, RefCell};
-use std::io::{Read, Write};
+use std::io::Error;
+use std::io::ErrorKind;
 
-use crate::error::Error;
+//use crate::error::Error;
 use crate::{FromNetworkOrder, ToNetworkOrder};
 
 // helper macro for boiler plate definitions
@@ -13,8 +14,8 @@ use crate::{FromNetworkOrder, ToNetworkOrder};
 //         where
 //             T: ToNetworkOrder + Copy,
 //         {
-//             fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-//                 self.get().to_network_order(buffer)
+//             fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+//                 self.get().serialize_to(buffer)
 //             }
 //         }
 
@@ -22,9 +23,9 @@ use crate::{FromNetworkOrder, ToNetworkOrder};
 //         where
 //             T: FromNetworkOrder<'a> + Default,
 //         {
-//             fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+//             fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
 //                 let mut v: T = T::default();
-//                 v.from_network_order(buffer)?;
+//                 v.deserialize_from(buffer)?;
 
 //                 self.set(v)?;
 //                 Ok(())
@@ -43,15 +44,15 @@ where
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let v = Cell::new([[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]]);
-    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```       
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-        self.get().to_network_order(buffer)
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.get().serialize_to(buffer)
     }
 }
 
-impl<T> FromNetworkOrder<'a> for Cell<T>
+impl<'a, T> FromNetworkOrder<'a> for Cell<T>
 where
     T: FromNetworkOrder<'a> + Default,
 {
@@ -63,12 +64,12 @@ where
     /// let b = [0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v = Cell::new([0_u16;2]);
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, Cell::new([0x1234_u16, 0x5678]));
     /// ```      
-    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v: T = T::default();
-        v.from_network_order(buffer)?;
+        v.deserialize_from(buffer)?;
 
         self.set(v);
         Ok(())
@@ -86,18 +87,18 @@ where
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let mut v = OnceCell::new();
     /// v.set([[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]]).unwrap();
-    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```     
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         match self.get() {
             None => Ok(0),
-            Some(v) => v.to_network_order(buffer),
+            Some(v) => v.serialize_to(buffer),
         }
     }
 }
 
-impl<T> FromNetworkOrder<'a> for OnceCell<T>
+impl<'a, T> FromNetworkOrder<'a> for OnceCell<T>
 where
     T: FromNetworkOrder<'a> + Default,
 {
@@ -109,16 +110,16 @@ where
     /// let b = [0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v: OnceCell<[u16;2]> = OnceCell::new();
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.get().unwrap(), &[0x1234_u16, 0x5678]);
     /// ```      
-    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v: T = T::default();
-        v.from_network_order(buffer)?;
+        v.deserialize_from(buffer)?;
 
         match self.set(v) {
             Ok(_) => Ok(()),
-            Err(_) => Err(Error::Custom(String::from("cell is full"))),
+            Err(_) => Err(Error::new(ErrorKind::Other, "cell is full")),
         }
     }
 }
@@ -133,15 +134,15 @@ where
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let v = RefCell::new(vec![[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]]);
-    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```      
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-        self.borrow().to_network_order(buffer)
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        self.borrow().serialize_to(buffer)
     }
 }
 
-impl<T> FromNetworkOrder<'a> for RefCell<T>
+impl<'a, T> FromNetworkOrder<'a> for RefCell<T>
 where
     T: FromNetworkOrder<'a> + Default + std::fmt::Debug,
 {
@@ -153,12 +154,12 @@ where
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v = RefCell::new([0_u16;2]);
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, RefCell::new([0x1234_u16, 0x5678]));
     /// ```     
-    fn from_network_order(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         let mut v = T::default();
-        v.from_network_order(buffer)?;
+        v.deserialize_from(buffer)?;
 
         self.replace(v);
         Ok(())

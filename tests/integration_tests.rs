@@ -1,4 +1,4 @@
-use byteorder::{BigEndian, WriteBytesExt};
+use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
 // some tests for structs
 use type2network::{FromNetworkOrder, ToNetworkOrder};
@@ -7,7 +7,7 @@ use type2network_derive::{FromNetwork, ToNetwork};
 // used for boiler plate unit tests for integers, floats etc
 pub fn to_network_test<T: ToNetworkOrder>(val: &T, size: usize, v: &[u8]) {
     let mut buffer: Vec<u8> = Vec::new();
-    assert_eq!(val.to_network_order(&mut buffer).unwrap(), size);
+    assert_eq!(val.serialize_to(&mut buffer).unwrap(), size);
     assert_eq!(buffer, v);
 }
 
@@ -21,7 +21,7 @@ where
     } else {
         def.unwrap()
     };
-    assert!(v.from_network_order(&mut buffer).is_ok());
+    assert!(v.deserialize_from(&mut buffer).is_ok());
     assert_eq!(&v, val);
 }
 
@@ -78,7 +78,7 @@ fn struct_one_typeparam() {
 }
 
 #[test]
-fn struct_lifetime() {
+fn struct_lifetime_to() {
     #[derive(Debug, PartialEq, ToNetwork)]
     struct Data<'a, T, V>
     where
@@ -105,16 +105,77 @@ fn struct_lifetime() {
 }
 
 #[test]
+fn struct_lifetime_from() {
+    #[derive(Debug, PartialEq, FromNetwork)]
+    struct Data<'a, T, V>
+    where
+        T: FromNetworkOrder<'a>,
+        V: FromNetworkOrder<'a>,
+    {
+        x: &'a str,
+        y: T,
+        z: Option<V>,
+    }
+}
+
+#[test]
+fn struct_rr() {
+// A generic RR structure which could be use with OPT too
+    #[derive(Debug, Default, ToNetwork)]
+    pub struct DNSRR<T, U, V>
+    where
+        T: ToNetworkOrder,
+        U: ToNetworkOrder,
+        V: ToNetworkOrder,     
+    {
+        pub name: T, // an owner name, i.e., the name of the node to which this resource record pertains.
+        pub r#type: u16,        // two octets containing one of the RR TYPE codes.
+        pub class: U, // two octets containing one of the RR CLASS codes or payload size in case of OPT
+        pub ttl: u32, //   a bit = 32 signed (actually unsigned) integer that specifies the time interval
+        // that the resource record may be cached before the source
+        // of the information should again be consulted.  Zero
+        // values are interpreted to mean that the RR can only be
+        // used for the transaction in progress, and should not be
+        // cached.  For example, SOA records are always distributed
+        // with a zero TTL to prohibit caching.  Zero values can
+        // also be used for extremely volatile data.
+        pub rd_length: u16, // an unsigned 16 bit integer that specifies the length in octets of the RDATA field.
+        pub r_data: Option<V>,
+        //  a variable length string of octets that describes the
+        //  resource.  The format of this information varies
+        //  according to the TYPE and CLASS of the resource record.
+    }
+}
+
+
+
+#[test]
 #[allow(dead_code)]
-fn enum_simple() {
+fn enum_c_like() {
     #[derive(ToNetwork)]
-    enum Bool {
+    enum Boolean {
         True,
         False,
     }
 
-    let b = Bool::True;
+    let b = Boolean::True;
     to_network_test(&b, 1, &[0x00]);
+}
+
+#[test]
+#[allow(dead_code)]
+fn enum_simple() {
+    #[derive(ToNetwork, FromNetwork)]
+    #[repr(u64)]
+    enum Color {
+        Black = 0,
+        White = 1,
+        Yellow = 3,
+        Brown = 55,
+    }
+    
+    // let c = Color::Brown;
+    // to_network_test(&c, 8, &[0, 0, 0, 0, 0, 0, 0, 55]);
 }
 
 #[test]
@@ -135,4 +196,17 @@ fn enum_message() {
 
     let m = Message::ChangeColor(0x1234, 0x5678, 0x9ABC);
     to_network_test(&m, 6, &[0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC]);
+}
+
+#[test]
+#[allow(dead_code)]
+fn enum_lifetime() {
+    #[derive(ToNetwork)]
+    enum Question<'a> {
+        Label(&'a str),
+        Answer(String),
+    }
+
+    let m = Question::Label("this is my question");
+    to_network_test(&m, 19, "this is my question".as_bytes());
 }

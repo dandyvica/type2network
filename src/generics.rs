@@ -9,19 +9,19 @@ impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
-    /// assert_eq!(Some(0xFF_u8).to_network_order(&mut buffer).unwrap(), 1);
+    /// assert_eq!(Some(0xFF_u8).serialize_to(&mut buffer).unwrap(), 1);
     /// assert_eq!(buffer, &[0xFF]);
-    ///
+    /// 
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let r: Option<u8> = None;
-    /// assert_eq!(r.to_network_order(&mut buffer).unwrap(), 0);
+    /// assert_eq!(r.serialize_to(&mut buffer).unwrap(), 0);
     /// assert!(buffer.is_empty());
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         if self.is_none() {
             Ok(0)
         } else {
-            self.as_ref().unwrap().to_network_order(buffer)
+            self.as_ref().unwrap().serialize_to(buffer)
         }
     }
 }
@@ -34,23 +34,20 @@ impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v: Option<u32> = None;
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert!(v.is_none());
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v: Option<u32> = Some(0u32);
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.unwrap(), 0x12345678);
     /// ```
-    fn from_network_order(
-        &mut self,
-        buffer: &mut std::io::Cursor<&'a [u8]>,
-    ) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         if self.is_none() {
             Ok(())
         } else {
-            self.as_mut().unwrap().from_network_order(buffer)
+            self.as_mut().unwrap().deserialize_from(buffer)
         }
     }
 }
@@ -60,16 +57,16 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
     /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
-    /// assert_eq!([0xFFFF_u16; 10].to_network_order(&mut buffer).unwrap(), 20);
+    /// assert_eq!([0xFFFF_u16; 10].serialize_to(&mut buffer).unwrap(), 20);
     /// assert_eq!(buffer, &[0xFF; 20]);
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         let mut length = 0usize;
         let mut buf: Vec<u8> = Vec::new();
 
         for x in self {
             // first convert x to network bytes
-            length += x.to_network_order(&mut buf)?;
+            length += x.serialize_to(&mut buf)?;
 
             _ = buffer.write(&buf)?;
             buf.clear();
@@ -87,21 +84,18 @@ impl<'a, T: FromNetworkOrder<'a>, const N: usize> FromNetworkOrder<'a> for [T; N
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v = [0u8;4];
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, [0x12_u8, 0x34, 0x56, 0x78]);
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v = [0u16;2];
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, [0x1234_u16, 0x5678]);
     /// ```
-    fn from_network_order(
-        &mut self,
-        buffer: &mut std::io::Cursor<&'a [u8]>,
-    ) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         for x in self {
-            x.from_network_order(buffer)?;
+            x.deserialize_from(buffer)?;
         }
         Ok(())
     }
@@ -116,15 +110,15 @@ where
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let v = vec![[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]];
-    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         let mut length = 0usize;
 
         // copy data for each element
         for item in self {
-            length += item.to_network_order(buffer)?;
+            length += item.serialize_to(buffer)?;
         }
 
         Ok(length)
@@ -142,15 +136,12 @@ where
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v: Vec<u16> = vec![0_u16;2];
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, &[0x1234_u16, 0x5678]);
     /// ```
-    fn from_network_order(
-        &mut self,
-        buffer: &mut std::io::Cursor<&'a [u8]>,
-    ) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         for item in self {
-            item.from_network_order(buffer)?;
+            item.deserialize_from(buffer)?;
         }
         Ok(())
     }
@@ -165,12 +156,12 @@ where
     ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let v = Box::new(vec![[0xFFFF_u16;3],[0xFFFF;3],[0xFFFF;3]]);
-    /// assert_eq!(v.to_network_order(&mut buffer).unwrap(), 18);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 18);
     /// assert_eq!(&buffer, &[0xFF; 18]);
     /// ```    
-    fn to_network_order(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         use std::ops::Deref;
-        self.deref().to_network_order(buffer)
+        self.deref().serialize_to(buffer)
     }
 }
 
@@ -186,26 +177,59 @@ where
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
     /// let mut v = Box::new(vec![0_u16;2]);
-    /// assert!(v.from_network_order(&mut buffer).is_ok());
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
     /// ```    
-    fn from_network_order(
-        &mut self,
-        buffer: &mut std::io::Cursor<&'a [u8]>,
-    ) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         use std::ops::DerefMut;
-        self.deref_mut().from_network_order(buffer)
+        self.deref_mut().deserialize_from(buffer)
+    }
+}
+
+impl ToNetworkOrder for Box<dyn ToNetworkOrder>
+{
+    /// ```
+    /// use type2network::ToNetworkOrder;
+    ///
+    /// let mut buffer: Vec<u8> = Vec::new();
+    /// let v = Box::new([0xFFFF_u16;3]);
+    /// assert_eq!(v.serialize_to(&mut buffer).unwrap(), 6);
+    /// assert_eq!(&buffer, &[0xFF; 6]);
+    /// ```    
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        use std::ops::Deref;
+        self.deref().serialize_to(buffer)
+    }
+}
+
+
+impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>>
+{
+    /// ```
+    /// use std::io::Cursor;
+    /// use std::ops::Deref;
+    /// use type2network::FromNetworkOrder;
+    ///
+    /// let b = vec![0x12, 0x34, 0x56, 0x78];
+    /// let mut buffer = Cursor::new(b.as_slice());
+    /// let mut v = Box::new(vec![0_u16;2]);
+    /// assert!(v.deserialize_from(&mut buffer).is_ok());
+    /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
+    /// ```    
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+        use std::ops::DerefMut;
+        self.deref_mut().deserialize_from(buffer)
     }
 }
 
 impl<T> ToNetworkOrder for PhantomData<T> {
-    fn to_network_order(&self, _: &mut Vec<u8>) -> std::io::Result<usize> {
+    fn serialize_to(&self, _: &mut Vec<u8>) -> std::io::Result<usize> {
         Ok(0)
     }
 }
 
 impl<'a, T> FromNetworkOrder<'a> for PhantomData<T> {
-    fn from_network_order(&mut self, _: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+    fn deserialize_from(&mut self, _: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         Ok(())
     }
 }
