@@ -127,7 +127,7 @@ where
 
 impl<'a, T> FromNetworkOrder<'a> for Vec<T>
 where
-    T: FromNetworkOrder<'a>,
+    T: Default + FromNetworkOrder<'a>,
 {
     /// ```
     /// use std::io::Cursor;
@@ -135,15 +135,25 @@ where
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v: Vec<u16> = vec![0_u16;2];
+    /// let mut v: Vec<u16> = Vec::with_capacity(2);
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, &[0x1234_u16, 0x5678]);
     /// ```
     fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
-        for item in self {
-            item.deserialize_from(buffer)?;
+        // println!("inside Vec, buffer={:?}", buffer);
+        // for item in self {
+        //     item.deserialize_from(buffer)?;
+        // }
+        // Ok(())
+        // the length field holds the length of data field in bytes
+        let length = self.capacity();
+
+        for _ in 0..length {
+            let mut u: T = T::default();
+            u.deserialize_from(buffer)?;
+            self.push(u);
         }
-        Ok(())
+        Ok(())        
     }
 }
 
@@ -176,7 +186,7 @@ where
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v = Box::new(vec![0_u16;2]);
+    /// let mut v = Box::new(Vec::<u16>::with_capacity(2));
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
     /// ```    
@@ -202,7 +212,6 @@ impl ToNetworkOrder for Box<dyn ToNetworkOrder>
     }
 }
 
-
 impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>>
 {
     /// ```
@@ -212,7 +221,7 @@ impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>>
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v = Box::new(vec![0_u16;2]);
+    /// let mut v = Box::new(Vec::<u16>::with_capacity(2));
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
     /// ```    
@@ -270,12 +279,23 @@ mod tests {
             ],
         );
 
+        use crate::FromNetworkOrder;
+        use type2network_derive::{FromNetwork, ToNetwork};
+        
+        #[derive(Debug, Default, PartialEq, FromNetwork)]
+        struct Point {
+            x: u16,
+            y: u16
+        }
+        let w = Vec::<Point>::with_capacity(3);
+
         from_network_test(
-            Some(vec![[Some(0_u16); 2]; 3]),
+            //Some(vec![[Some(0_u16); 2]; 3]),
+            Some(w),
             vec![
-                [Some(0x1234_u16), Some(0x5678_u16)],
-                [Some(0x2345_u16), Some(0x6789_u16)],
-                [Some(0x3456_u16), Some(0x789A_u16)],
+                Point { x:0x1234_u16, y:0x5678_u16 },
+                Point { x:0x2345_u16, y:0x6789_u16 },
+                Point { x:0x3456_u16, y:0x789A_u16 },
             ],
             &vec![
                 0x12_u8, 0x34, 0x56, 0x78, 0x23, 0x45, 0x67, 0x89, 0x34, 0x56, 0x78, 0x9A,
