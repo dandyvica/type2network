@@ -44,7 +44,7 @@ fn derive_helper(
         _ => unimplemented!("{} is neither a struct, nor an enum", ast.ident.to_string()),
     };
 
-    println!("code for {} ============> '{}'", ast.ident, code);
+    //println!("code for {} ============> '{}'", ast.ident, code);
 
     code.into()
 }

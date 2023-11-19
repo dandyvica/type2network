@@ -135,7 +135,7 @@ where
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v: Vec<u16> = Vec::with_capacity(2);
+    /// let mut v: Vec<u16> = Vec::<u16>::with_capacity(2);
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v, &[0x1234_u16, 0x5678]);
     /// ```
@@ -186,7 +186,7 @@ where
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v = Box::new(Vec::<u16>::with_capacity(2));
+    /// let mut v = Box::new([0;2]);
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
     /// ```    
@@ -221,7 +221,7 @@ impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>>
     ///
     /// let b = vec![0x12, 0x34, 0x56, 0x78];
     /// let mut buffer = Cursor::new(b.as_slice());
-    /// let mut v = Box::new(Vec::<u16>::with_capacity(2));
+    /// let mut v = Box::new([0;2]);
     /// assert!(v.deserialize_from(&mut buffer).is_ok());
     /// assert_eq!(v.deref(), &[0x1234_u16, 0x5678]);
     /// ```    
