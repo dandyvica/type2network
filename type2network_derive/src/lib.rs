@@ -19,7 +19,7 @@ pub fn to_network(input: TokenStream) -> TokenStream {
     )
 }
 
-#[proc_macro_derive(FromNetwork)]
+#[proc_macro_derive(FromNetwork, attributes(deser))]
 pub fn from_network(input: TokenStream) -> TokenStream {
     derive_helper(
         input,
@@ -44,8 +44,7 @@ fn derive_helper(
         _ => unimplemented!("{} is neither a struct, nor an enum", ast.ident.to_string()),
     };
 
-    //println!("code for {} ============> '{}'", ast.ident, code);
+    println!("code for {} ============> '{}'", ast.ident, code);
 
     code.into()
 }
-

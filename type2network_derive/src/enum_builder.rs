@@ -19,6 +19,7 @@ impl EnumDeriveBuilder {
         let code = quote! {
             impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
                 fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+                    let mut length = 0usize;
                     match self {
                         #( #arms)*
                     }
@@ -107,7 +108,6 @@ impl EnumDeriveBuilder {
 
                 quote! {
                     #enum_name::#variant_ident(#(#field_names),*) => {
-                        let mut length = 0usize;
                         #( #method_calls)*
                         Ok(length)
                     },

@@ -21,7 +21,72 @@ pub trait FromNetworkOrder<'a> {
 
 It's using the ```byteorder``` crate in order to convert integers or floats to a BigEndian buffer of ```u8```.
 
-# List of supported types
+## How to use it ?
+### On a struct
+
+Just add :
+
+* ```#[derive(FromNetwork)]``` to auto-implement the ```ToNetworkOrder``` trait
+* ```#[derive(ToNetwork)]``` to auto-implement the ```FromNetworkOrder``` trait
+* ```#[derive(ToNetwork, FromNetwork)]``` to auto-implement the ```ToNetworkOrder``` & ```FromNetworkOrder``` traits
+
+### On an enum
+
+Just add :
+
+* ```#[derive(ToNetwork)]``` to auto-implement the ```FromNetworkOrder``` trait
+
+The ```FromNetworkOrder``` is not supported for enums.
+
+## The #[deser] attribute
+In addition it's possible to add a field attribute on a field for structs for the ```FromNetworkOrder``` trait:
+
+* ```#[deser(no)]``` : the field is not deserialized
+* ```#[deser(with_fn(func))]``` : the function ```func``` is called on ```&mut self``` for that field
+* ```#[deser(with_code(code))]``` : the ```code``` block is injected
+
+Examples:
+
+```rust
+// z field is not deserialized
+#[derive(Debug, Default, PartialEq, FromNetwork)]
+struct PointAttrNo {
+    x: u16,
+    y: u16,
+
+    // last field is not deserialized
+    #[deser(no)]
+    z: u16,
+}
+
+// this function will be called for z field
+fn update(p: &mut PointFn) {
+    p.z = 3;
+}
+
+#[derive(Debug, Default, PartialEq, FromNetwork)]
+struct PointFn {
+    x: u16,
+    y: u16,
+
+    // last field is not deserialized
+    #[deser(with_fn(update))]
+    z: u16,
+}
+
+// the block: self.z = 0xFFFF; is injected
+#[derive(Debug, Default, PartialEq, FromNetwork)]
+struct PointCode {
+    x: u16,
+    y: u16,
+
+    // last field is not deserialized
+    #[deser(with_code(self.z = 0xFFFF;))]
+    z: u16,
+}
+```
+
+## List of supported types
 
 | Type    | ToNetwork | FromNetwork |
 | -------- | ------- |------- |
@@ -41,7 +106,9 @@ It's using the ```byteorder``` crate in order to convert integers or floats to a
 | ```Box<dyn FromNetworkOrder<'a>>``` | no     |yes|
 
 
-# Use case: NTP protocol
+
+
+## Use case: NTP protocol
 As an example, we can use this crate to send NTP packets to get time from an NTP server. The documention of the (simple) NTP protocol can be found in
 https://datatracker.ietf.org/doc/html/rfc4330.
 

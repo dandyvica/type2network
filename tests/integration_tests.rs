@@ -210,3 +210,68 @@ fn enum_lifetime() {
     let m = Question::Label("this is my question");
     to_network_test(&m, 19, "this is my question".as_bytes());
 }
+
+#[test]
+fn struct_attr_no() {
+    #[derive(Debug, Default, PartialEq, FromNetwork)]
+    struct PointAttrNo {
+        x: u16,
+        y: u16,
+
+        // last field is not deserialized
+        #[deser(no)]
+        z: u16,
+    }
+
+    let pt = PointAttrNo {
+        x: 0x1234,
+        y: 0x5678,
+        z: 0,
+    };
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78, 0x00, 0x00]);
+}
+
+#[test]
+fn struct_attr_fn() {
+    // this function will be called whenever the attrbiute is found
+    fn update(p: &mut PointFn) {
+        p.z = 3;
+    }
+
+    #[derive(Debug, Default, PartialEq, FromNetwork)]
+    struct PointFn {
+        x: u16,
+        y: u16,
+
+        // last field is not deserialized
+        #[deser(with_fn(update))]
+        z: u16,
+    }
+
+    let pt = PointFn {
+        x: 0x1234,
+        y: 0x5678,
+        z: 3,
+    };
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78, 0x03, 0x00]);
+}
+
+#[test]
+fn struct_attr_code() {
+    #[derive(Debug, Default, PartialEq, FromNetwork)]
+    struct PointCode {
+        x: u16,
+        y: u16,
+
+        // last field is not deserialized
+        #[deser(with_code(self.z = 0xFFFF;))]
+        z: u16,
+    }
+
+    let pt = PointCode {
+        x: 0x1234,
+        y: 0x5678,
+        z: 0xFFFF,
+    };
+    from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78, 0xFF, 0xFF]);
+}

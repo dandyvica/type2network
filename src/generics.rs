@@ -11,7 +11,7 @@ impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
     /// let mut buffer: Vec<u8> = Vec::new();
     /// assert_eq!(Some(0xFF_u8).serialize_to(&mut buffer).unwrap(), 1);
     /// assert_eq!(buffer, &[0xFF]);
-    /// 
+    ///
     /// let mut buffer: Vec<u8> = Vec::new();
     /// let r: Option<u8> = None;
     /// assert_eq!(r.serialize_to(&mut buffer).unwrap(), 0);
@@ -153,7 +153,7 @@ where
             u.deserialize_from(buffer)?;
             self.push(u);
         }
-        Ok(())        
+        Ok(())
     }
 }
 
@@ -196,8 +196,7 @@ where
     }
 }
 
-impl ToNetworkOrder for Box<dyn ToNetworkOrder>
-{
+impl ToNetworkOrder for Box<dyn ToNetworkOrder> {
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -212,8 +211,7 @@ impl ToNetworkOrder for Box<dyn ToNetworkOrder>
     }
 }
 
-impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>>
-{
+impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>> {
     /// ```
     /// use std::io::Cursor;
     /// use std::ops::Deref;
@@ -280,12 +278,12 @@ mod tests {
         );
 
         use crate::FromNetworkOrder;
-        use type2network_derive::{FromNetwork, ToNetwork};
-        
+        use type2network_derive::{FromNetwork};
+
         #[derive(Debug, Default, PartialEq, FromNetwork)]
         struct Point {
             x: u16,
-            y: u16
+            y: u16,
         }
         let w = Vec::<Point>::with_capacity(3);
 
@@ -293,9 +291,18 @@ mod tests {
             //Some(vec![[Some(0_u16); 2]; 3]),
             Some(w),
             vec![
-                Point { x:0x1234_u16, y:0x5678_u16 },
-                Point { x:0x2345_u16, y:0x6789_u16 },
-                Point { x:0x3456_u16, y:0x789A_u16 },
+                Point {
+                    x: 0x1234_u16,
+                    y: 0x5678_u16,
+                },
+                Point {
+                    x: 0x2345_u16,
+                    y: 0x6789_u16,
+                },
+                Point {
+                    x: 0x3456_u16,
+                    y: 0x789A_u16,
+                },
             ],
             &vec![
                 0x12_u8, 0x34, 0x56, 0x78, 0x23, 0x45, 0x67, 0x89, 0x34, 0x56, 0x78, 0x9A,
