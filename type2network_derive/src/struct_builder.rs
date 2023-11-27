@@ -12,11 +12,21 @@ pub type StructBuilder = fn(&DeriveInput, &DataStruct) -> proc_macro2::TokenStre
 //
 #[derive(Debug, Default)]
 enum AttrKind {
+    // when no #[deser] attribute is given
     #[default]
     NoAttribute,
+
+    // #[deser(no)]
     NoAction,
+
+    // #[deser(with_fn(my_func))]
     Call(Ident),
+
+    // #[deser(with_code( let v = Vec::new(); ))]    
     Block(proc_macro2::TokenStream),
+
+    // #[deser(debug)]    
+    Debug
 }
 
 impl StructDeriveBuilder {
@@ -102,6 +112,7 @@ impl StructDeriveBuilder {
     }
 }
 
+// in case of a named field, process potential attribute and inject code
 fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap();
 
@@ -139,10 +150,21 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
 
         // a block was provided
         // #[deser({ self.z = 0xFFFF })]
-        AttrKind::Block(block) => quote!(#block),
+        AttrKind::Block(block) => quote!(
+            #block
+            FromNetworkOrder::deserialize_from(&mut self.#field_name, buffer)?;
+        ),
+
+        // debug is requested
+        // #[deser(debug)]
+        AttrKind::Debug => quote!(
+            FromNetworkOrder::deserialize_from(&mut self.#field_name, buffer)?;
+            dbg!(self.#field_name);
+        )
     }
 }
 
+//process the #[deser] attribute for all different cases
 fn process_attr(attr: &Attribute) -> AttrKind {
     // outer attribute only
     if attr.style != AttrStyle::Outer {
@@ -192,6 +214,12 @@ fn process_attr(attr: &Attribute) -> AttrKind {
 
             unimplemented!("deser attribute meta not supported")
         }
+
+        // #[deser(debug)]
+        if meta.path.is_ident("debug") {
+            kind = AttrKind::Debug;
+            return Ok(());
+        }        
 
         Err(meta.error("unrecognized deser attribute"))
     });

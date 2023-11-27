@@ -275,3 +275,15 @@ fn struct_attr_code() {
     };
     from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78, 0xFF, 0xFF]);
 }
+
+#[test]
+fn struct_debug() {
+    #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
+    struct PointDebug {
+        #[deser(debug)]
+        x: u16,
+
+        #[deser(debug)]
+        y: u16,
+    }
+}

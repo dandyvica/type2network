@@ -54,7 +54,11 @@ impl EnumDeriveBuilder {
 
                     let choice = match value {
                         #( #arms)*
-                        _ => return Err(std::io::Error::new(std::io::ErrorKind::Other, "value not supported"))
+                        _ => {
+                            let s = format!("value not supported for value {}", value);
+                            return Err(std::io::Error::new(std::io::ErrorKind::Other, s))
+                        }
+                        
                     };
 
                     *self = choice;
