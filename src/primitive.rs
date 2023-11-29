@@ -166,6 +166,12 @@ impl ToNetworkOrder for String {
     }
 }
 
+impl ToNetworkOrder for () {
+    fn serialize_to(&self, _buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        Ok(0)
+    }
+}
+
 // impl<'a> FromNetworkOrder<'a> for String {
 //     fn deserialize_from<'a>(&mut self, buffer: &mut Cursor<&[u8]>) -> Result<(), Error> {
 //         // get a reference on [u8]
