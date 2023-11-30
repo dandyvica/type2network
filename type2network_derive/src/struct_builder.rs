@@ -22,11 +22,11 @@ enum AttrKind {
     // #[deser(with_fn(my_func))]
     Call(Ident),
 
-    // #[deser(with_code( let v = Vec::new(); ))]    
+    // #[deser(with_code( let v = Vec::new(); ))]
     Block(proc_macro2::TokenStream),
 
-    // #[deser(debug)]    
-    Debug
+    // #[deser(debug)]
+    Debug,
 }
 
 impl StructDeriveBuilder {
@@ -160,7 +160,7 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
         AttrKind::Debug => quote!(
             FromNetworkOrder::deserialize_from(&mut self.#field_name, buffer)?;
             dbg!(self.#field_name);
-        )
+        ),
     }
 }
 
@@ -219,7 +219,7 @@ fn process_attr(attr: &Attribute) -> AttrKind {
         if meta.path.is_ident("debug") {
             kind = AttrKind::Debug;
             return Ok(());
-        }        
+        }
 
         Err(meta.error("unrecognized deser attribute"))
     });

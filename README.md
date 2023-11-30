@@ -22,7 +22,6 @@ pub trait FromNetworkOrder<'a> {
 It's using the ```byteorder``` crate in order to convert integers or floats to a BigEndian buffer of ```u8```.
 
 ## How to use it ?
-### On a struct
 
 Just add :
 
@@ -30,13 +29,7 @@ Just add :
 * ```#[derive(ToNetwork)]``` to auto-implement the ```FromNetworkOrder``` trait
 * ```#[derive(ToNetwork, FromNetwork)]``` to auto-implement the ```ToNetworkOrder``` & ```FromNetworkOrder``` traits
 
-### On an enum
-
-Just add :
-
-* ```#[derive(ToNetwork)]``` to auto-implement the ```FromNetworkOrder``` trait
-
-The ```FromNetworkOrder``` is not supported for enums.
+The ```FromNetworkOrder``` is only supported for unit-like enums. For the ```ToNetworkOrder``` trait on unit-like enums, it needs to be ```Copy, Clone```.
 
 ## The #[deser] attribute
 In addition it's possible to add a field attribute on a field for structs for the ```FromNetworkOrder``` trait:
@@ -99,6 +92,7 @@ struct PointCode {
 | ```Vec<T>``` | yes     |yes|
 | ```Box<T>``` | yes     |yes|
 | ```PhantomData<T>``` | yes     |yes|
+| ```()``` | yes     |yes|
 | ```Cell<T>``` | yes     |yes|
 | ```OnceCell<T>``` | yes     |yes|
 | ```RefCell<T>``` | yes     |yes|

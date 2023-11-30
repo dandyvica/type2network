@@ -1,6 +1,6 @@
 use proc_macro2::Span;
 use quote::quote;
-use syn::{DataEnum, DeriveInput, Fields, Ident, Variant};
+use syn::{Attribute, DataEnum, DeriveInput, Fields, Ident, Variant};
 
 pub struct EnumDeriveBuilder;
 pub type EnumBuilder = fn(&DeriveInput, &DataEnum) -> proc_macro2::TokenStream;
@@ -8,20 +8,32 @@ pub type EnumBuilder = fn(&DeriveInput, &DataEnum) -> proc_macro2::TokenStream;
 impl EnumDeriveBuilder {
     pub fn to_network(ast: &DeriveInput, de: &DataEnum) -> proc_macro2::TokenStream {
         let enum_name = &ast.ident;
-
-        let arms = de
-            .variants
-            .iter()
-            .map(|v| EnumDeriveBuilder::build_variant_arm(enum_name, v));
-
         let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
 
-        let code = quote! {
-            impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
-                fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-                    let mut length = 0usize;
-                    match self {
-                        #( #arms)*
+        // if all variants are unit, the serialize_from() method is straightforward
+        let code = if de.variants.iter().all(|x| x.fields == Fields::Unit) {
+            let code_to = process_attr_to(enum_name, &ast.attrs);
+
+            quote! {
+                impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
+                    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+                        #code_to
+                    }
+                }
+            }
+        } else {
+            let arms = de
+                .variants
+                .iter()
+                .map(|v| EnumDeriveBuilder::build_variant_arm(enum_name, v));
+
+            quote! {
+                impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
+                    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+                        let mut length = 0usize;
+                        match self {
+                            #( #arms)*
+                        }
                     }
                 }
             }
@@ -30,39 +42,22 @@ impl EnumDeriveBuilder {
         code
     }
 
-    pub fn from_network(ast: &DeriveInput, de: &DataEnum) -> proc_macro2::TokenStream {
+    pub fn from_network(ast: &DeriveInput, _de: &DataEnum) -> proc_macro2::TokenStream {
         let enum_name = &ast.ident;
-
-        let arms = de.variants.iter().map(|v| {
-            let variant_ident = &v.ident;
-
-            quote! {
-                x if x == #enum_name::#variant_ident as u64 => #enum_name::#variant_ident,
-            }
-        });
+        let enum_string = enum_name.to_string();
+        let value_expr = process_attr_from(enum_name, &ast.attrs);
 
         quote! {
             impl<'a> FromNetworkOrder<'a> for #enum_name {
                 fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
-                    let value: u64 = match std::mem::size_of_val(self) {
-                        1 => buffer.read_u8()? as u64,
-                        2 => buffer.read_u16::<BigEndian>()? as u64,
-                        4 => buffer.read_u32::<BigEndian>()? as u64,
-                        8 => buffer.read_u64::<BigEndian>()? as u64,
-                        _ => unimplemented!("that Enum size is not supported"),
-                    };
-
-                    let choice = match value {
-                        #( #arms)*
-                        _ => {
-                            let s = format!("value not supported for value {}", value);
-                            return Err(std::io::Error::new(std::io::ErrorKind::Other, s))
+                    #value_expr
+                    match <#enum_name>::try_from(value) {
+                        Ok(ct) => {
+                            *self = ct;
+                            Ok(())
                         }
-                        
-                    };
-
-                    *self = choice;
-                    Ok(())
+                        _ => Err(std::io::Error::other(format!("error converting value '{}' to enum type {}", value, #enum_string))),
+                    }
                 }
             }
         }
@@ -154,4 +149,116 @@ impl EnumDeriveBuilder {
             }
         }
     }
+}
+
+//process the #[repr] attribute for all different cases for the ToNetwork trait
+fn process_attr_to(ident: &Ident, attrs: &[Attribute]) -> proc_macro2::TokenStream {
+    let mut ty = proc_macro2::TokenStream::default();
+
+    for attr in attrs {
+        if attr.path().is_ident("repr") {
+            let _ = attr.parse_nested_meta(|meta| {
+                // #[repr(u8)]
+                if meta.path.is_ident("u8") {
+                    ty = quote!(buffer.write_u8(*self as u8)?; Ok(1));
+                    return Ok(());
+                }
+                // #[repr(u16)]
+                if meta.path.is_ident("u16") {
+                    ty = quote!(buffer.write_u16::<BigEndian>(*self as u16)?; Ok(2));
+                    return Ok(());
+                }
+                // #[repr(u32)]
+                if meta.path.is_ident("u32") {
+                    ty = quote!(buffer.write_u32::<BigEndian>(*self as u32)?; Ok(4));
+                    return Ok(());
+                }
+                // #[repr(u64)]
+                if meta.path.is_ident("u64") {
+                    ty = quote!(buffer.write_u64::<BigEndian>(*self as u64)?; Ok(8));
+                    return Ok(());
+                }
+                // #[repr(i8)]
+                if meta.path.is_ident("i8") {
+                    ty = quote!(buffer.write_i8(*self as i8)?; Ok(1));
+                    return Ok(());
+                }
+                // #[repr(i16)]
+                if meta.path.is_ident("i16") {
+                    ty = quote!(buffer.write_i16::<BigEndian>(*self as i16)?; Ok(2));
+                    return Ok(());
+                }
+                // #[repr(i32)]
+                if meta.path.is_ident("i32") {
+                    ty = quote!(buffer.write_i32::<BigEndian>(*self as i32)?; Ok(4));
+                    return Ok(());
+                }
+                // #[repr(i64)]
+                if meta.path.is_ident("64") {
+                    ty = quote!(buffer.write_i64::<BigEndian>(*self as iu64)?; Ok(8));
+                    return Ok(());
+                }
+
+                unimplemented!("unsupported repr() in enum {}", ident.to_string());
+            });
+        }
+    }
+
+    ty
+}
+
+//process the #[repr] attribute for all different cases for the FromNetwork trait
+fn process_attr_from(ident: &Ident, attrs: &[Attribute]) -> proc_macro2::TokenStream {
+    let mut ty = proc_macro2::TokenStream::default();
+
+    for attr in attrs {
+        if attr.path().is_ident("repr") {
+            let _ = attr.parse_nested_meta(|meta| {
+                // #[repr(u8)]
+                if meta.path.is_ident("u8") {
+                    ty = quote!(let value = buffer.read_u8()?;);
+                    return Ok(());
+                }
+                // #[repr(u16)]
+                if meta.path.is_ident("u16") {
+                    ty = quote!(let value = buffer.read_u16::<BigEndian>()?;);
+                    return Ok(());
+                }
+                // #[repr(u32)]
+                if meta.path.is_ident("u32") {
+                    ty = quote!(let value = buffer.read_u32::<BigEndian>()?;);
+                    return Ok(());
+                }
+                // #[repr(u64)]
+                if meta.path.is_ident("u64") {
+                    ty = quote!(let value = buffer.read_u64::<BigEndian>()?;);
+                    return Ok(());
+                }
+                // #[repr(i8)]
+                if meta.path.is_ident("i8") {
+                    ty = quote!(let value = buffer.read_i8()?;);
+                    return Ok(());
+                }
+                // #[repr(i16)]
+                if meta.path.is_ident("i16") {
+                    ty = quote!(let value = buffer.read_i16()?;);
+                    return Ok(());
+                }
+                // #[repr(i32)]
+                if meta.path.is_ident("i32") {
+                    ty = quote!(let value = buffer.read_i32()?;);
+                    return Ok(());
+                }
+                // #[repr(i64)]
+                if meta.path.is_ident("64") {
+                    ty = quote!(let value = buffer.read_64()?;);
+                    return Ok(());
+                }
+
+                unimplemented!("unsupported repr() in enum {}", ident.to_string());
+            });
+        }
+    }
+
+    ty
 }

@@ -4,6 +4,8 @@ use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use type2network::{FromNetworkOrder, ToNetworkOrder};
 use type2network_derive::{FromNetwork, ToNetwork};
 
+use enum_from::EnumTryFrom;
+
 // used for boiler plate unit tests for integers, floats etc
 pub fn to_network_test<T: ToNetworkOrder>(val: &T, size: usize, v: &[u8]) {
     let mut buffer: Vec<u8> = Vec::new();
@@ -35,12 +37,12 @@ fn struct_unit() {
 #[test]
 fn struct_basic() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
-    struct Point {
+    struct PointStruct {
         x: u16,
         y: u16,
     }
 
-    let pt = Point {
+    let pt = PointStruct {
         x: 0x1234,
         y: 0x5678,
     };
@@ -51,9 +53,9 @@ fn struct_basic() {
 #[test]
 fn struct_tuple_basic() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
-    struct Point(u16, u16);
+    struct PointUnit(u16, u16);
 
-    let pt = Point(0x1234, 0x5678);
+    let pt = PointUnit(0x1234, 0x5678);
     to_network_test(&pt, 4, &[0x12, 0x34, 0x56, 0x78]);
     from_network_test(None, &pt, &vec![0x12, 0x34, 0x56, 0x78]);
 }
@@ -61,7 +63,7 @@ fn struct_tuple_basic() {
 #[test]
 fn struct_one_typeparam() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
-    struct Point<T>
+    struct PointTypeParam<T>
     where
         T: ToNetworkOrder + for<'b> FromNetworkOrder<'b>,
     {
@@ -69,7 +71,7 @@ fn struct_one_typeparam() {
         y: T,
     }
 
-    let pt = Point::<u16> {
+    let pt = PointTypeParam::<u16> {
         x: 0x1234,
         y: 0x5678,
     };
@@ -80,7 +82,7 @@ fn struct_one_typeparam() {
 #[test]
 fn struct_lifetime_to() {
     #[derive(Debug, PartialEq, ToNetwork)]
-    struct Data<'a, T, V>
+    struct DataLifeTime<'a, T, V>
     where
         T: ToNetworkOrder,
         V: ToNetworkOrder,
@@ -90,7 +92,7 @@ fn struct_lifetime_to() {
         z: Option<V>,
     }
 
-    let pt = Data::<Option<u16>, Vec<Option<u8>>> {
+    let pt = DataLifeTime::<Option<u16>, Vec<Option<u8>>> {
         x: &"\x01\x02\x03\x04\x05\x06\x07\x08",
         y: Some(0x090A),
         z: Some(vec![None, Some(0x0B), Some(0x0C)]),
@@ -107,7 +109,7 @@ fn struct_lifetime_to() {
 #[test]
 fn struct_lifetime_from() {
     #[derive(Debug, PartialEq, FromNetwork)]
-    struct Data<'a, T, V>
+    struct DataLifeTimeWithTypeParam<'a, T, V>
     where
         T: FromNetworkOrder<'a>,
         V: FromNetworkOrder<'a>,
@@ -120,16 +122,16 @@ fn struct_lifetime_from() {
 
 #[test]
 fn struct_rr() {
-// A generic RR structure which could be use with OPT too
+    // A generic RR structure which could be use with OPT too
     #[derive(Debug, Default, ToNetwork)]
     pub struct DNSRR<T, U, V>
     where
         T: ToNetworkOrder,
         U: ToNetworkOrder,
-        V: ToNetworkOrder,     
+        V: ToNetworkOrder,
     {
         pub name: T, // an owner name, i.e., the name of the node to which this resource record pertains.
-        pub r#type: u16,        // two octets containing one of the RR TYPE codes.
+        pub r#type: u16, // two octets containing one of the RR TYPE codes.
         pub class: U, // two octets containing one of the RR CLASS codes or payload size in case of OPT
         pub ttl: u32, //   a bit = 32 signed (actually unsigned) integer that specifies the time interval
         // that the resource record may be cached before the source
@@ -147,12 +149,11 @@ fn struct_rr() {
     }
 }
 
-
-
 #[test]
 #[allow(dead_code)]
 fn enum_c_like() {
-    #[derive(ToNetwork)]
+    #[derive(Copy, Clone, ToNetwork)]
+    #[repr(u8)]
     enum Boolean {
         True,
         False,
@@ -165,7 +166,7 @@ fn enum_c_like() {
 #[test]
 #[allow(dead_code)]
 fn enum_simple() {
-    #[derive(ToNetwork, FromNetwork)]
+    #[derive(Copy, Clone, ToNetwork, FromNetwork, EnumTryFrom)]
     #[repr(u64)]
     enum Color {
         Black = 0,
@@ -173,7 +174,7 @@ fn enum_simple() {
         Yellow = 3,
         Brown = 55,
     }
-    
+
     // let c = Color::Brown;
     // to_network_test(&c, 8, &[0, 0, 0, 0, 0, 0, 0, 55]);
 }

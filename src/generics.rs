@@ -278,7 +278,7 @@ mod tests {
         );
 
         use crate::FromNetworkOrder;
-        use type2network_derive::{FromNetwork};
+        use type2network_derive::FromNetwork;
 
         #[derive(Debug, Default, PartialEq, FromNetwork)]
         struct Point {
