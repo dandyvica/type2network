@@ -166,17 +166,52 @@ fn enum_c_like() {
 #[test]
 #[allow(dead_code)]
 fn enum_simple() {
-    #[derive(Copy, Clone, ToNetwork, FromNetwork, EnumTryFrom)]
+    #[derive(Debug, Default, PartialEq, Copy, Clone, ToNetwork, FromNetwork, EnumTryFrom)]
     #[repr(u64)]
     enum Color {
+        #[default]
         Black = 0,
         White = 1,
         Yellow = 3,
         Brown = 55,
     }
 
-    // let c = Color::Brown;
-    // to_network_test(&c, 8, &[0, 0, 0, 0, 0, 0, 0, 55]);
+    let c = Color::Brown;
+    to_network_test(&c, 8, &[0, 0, 0, 0, 0, 0, 0, 55]);
+    from_network_test(None, &c, &vec![0, 0, 0, 0, 0, 0, 0, 55]);
+}
+
+#[test]
+#[allow(dead_code)]
+fn enum_opcode() {
+    #[derive(Debug, Copy, Clone, PartialEq, EnumTryFrom, ToNetwork, FromNetwork)]
+    #[repr(u16)]
+    pub enum OpCodeReserved {
+        Query = 0,  //[RFC1035]
+        IQuery = 1, // (Inverse Query, OBSOLETE)	[RFC3425]
+        Status = 2, // [RFC1035]
+        Unassigned = 3,
+        Notify = 4, // [RFC1996]
+        Update = 5, // [RFC2136]
+        DOS = 6,    // DNS Stateful Operations (DSO)	[RFC8490]
+
+        #[fallback]
+        Reserved(u16),
+    }
+
+    impl Default for OpCodeReserved {
+        fn default() -> Self { OpCodeReserved::Query }
+    }    
+
+    let op = OpCodeReserved::IQuery;
+    to_network_test(&op, 2, &[0, 1]);
+    let op = OpCodeReserved::Reserved(55);
+    to_network_test(&op, 2, &[0, 55]);
+
+    let op = OpCodeReserved::Unassigned;
+    from_network_test(None, &op, &vec![0, 3]);
+    let op = OpCodeReserved::Reserved(55);
+    from_network_test(None, &op, &vec![0, 55]);
 }
 
 #[test]

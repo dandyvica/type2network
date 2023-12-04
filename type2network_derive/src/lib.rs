@@ -5,8 +5,11 @@ use proc_macro::TokenStream;
 mod struct_builder;
 use struct_builder::{StructBuilder, StructDeriveBuilder};
 
-mod enum_builder;
-use enum_builder::{EnumBuilder, EnumDeriveBuilder};
+mod r#enum;
+use r#enum::{EnumBuilder, EnumDeriveBuilder};
+
+// mod enum_builder;
+// use enum_builder::{EnumBuilder, EnumDeriveBuilder};
 
 mod generics;
 
