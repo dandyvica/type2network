@@ -2,6 +2,8 @@
 use std::io::Write;
 use std::marker::PhantomData;
 
+use either::*;
+
 use crate::{FromNetworkOrder, ToNetworkOrder};
 
 impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
@@ -238,6 +240,21 @@ impl<T> ToNetworkOrder for PhantomData<T> {
 impl<'a, T> FromNetworkOrder<'a> for PhantomData<T> {
     fn deserialize_from(&mut self, _: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
         Ok(())
+    }
+}
+
+impl<L, R> ToNetworkOrder for Either<L, R>
+where
+    L: ToNetworkOrder,
+    R: ToNetworkOrder,
+{
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        let length = match &self {
+            Either::Left(l) => l.serialize_to(buffer)?,
+            Either::Right(r) => r.serialize_to(buffer)?,
+        };
+
+        Ok(length)
     }
 }
 
