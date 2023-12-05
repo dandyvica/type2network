@@ -255,7 +255,7 @@ fn struct_attr_no() {
         y: u16,
 
         // last field is not deserialized
-        #[deser(no)]
+        #[deser(ignore)]
         z: u16,
     }
 

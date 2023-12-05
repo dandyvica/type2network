@@ -34,7 +34,7 @@ The ```FromNetworkOrder``` is only supported for unit-like enums. For the ```ToN
 ## The #[deser] attribute
 In addition it's possible to add a field attribute on a field for structs for the ```FromNetworkOrder``` trait:
 
-* ```#[deser(no)]``` : the field is not deserialized
+* ```#[deser(ignore)]``` : the field is not deserialized
 * ```#[deser(with_fn(func))]``` : the function ```func``` is called on ```&mut self``` for that field
 * ```#[deser(with_code(code))]``` : the ```code``` block is injected
 
@@ -48,7 +48,7 @@ struct PointAttrNo {
     y: u16,
 
     // last field is not deserialized
-    #[deser(no)]
+    #[deser(ignore)]
     z: u16,
 }
 

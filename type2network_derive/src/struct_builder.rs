@@ -16,7 +16,7 @@ enum AttrKind {
     #[default]
     NoAttribute,
 
-    // #[deser(no)]
+    // #[deser(ignore)]
     NoAction,
 
     // #[deser(with_fn(my_func))]
@@ -137,7 +137,7 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
             }
         }
 
-        // #[deser(no)]: don't do anything
+        // #[deser(ignore)]: don't do anything
         AttrKind::NoAction => quote!(),
 
         // a function was provided to the deser attribute: so just call it
@@ -179,8 +179,8 @@ fn process_attr(attr: &Attribute) -> AttrKind {
     let mut kind = AttrKind::default();
 
     let _ = attr.parse_nested_meta(|meta| {
-        // #[deser(no)]
-        if meta.path.is_ident("no") {
+        // #[deser(ignore)]
+        if meta.path.is_ident("ignore") {
             kind = AttrKind::NoAction;
             return Ok(());
         }
