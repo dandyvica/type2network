@@ -11,6 +11,7 @@ pub trait FromNetworkOrder<'a> {
 }
 
 //all definitions of serialize_to()/deserialize_from() for standard types
+pub mod additional;
 pub mod cell;
 pub mod generics;
 pub mod primitive;

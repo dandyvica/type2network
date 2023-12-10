@@ -200,8 +200,10 @@ fn enum_opcode() {
     }
 
     impl Default for OpCodeReserved {
-        fn default() -> Self { OpCodeReserved::Query }
-    }    
+        fn default() -> Self {
+            OpCodeReserved::Query
+        }
+    }
 
     let op = OpCodeReserved::IQuery;
     to_network_test(&op, 2, &[0, 1]);

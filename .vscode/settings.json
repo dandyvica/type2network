@@ -1,12 +1,7 @@
 {
     "rust-analyzer.linkedProjects": [
         "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml",
-        "./type2network_derive/Cargo.toml"
-    ],
+        "./Cargo.toml"
+     ],
     "rust-analyzer.showUnlinkedFileNotification": false
 }
