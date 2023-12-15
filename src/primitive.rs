@@ -1,16 +1,16 @@
 //! All functions/trait to convert DNS structures to network order back & forth
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
-use std::io::{Error, ErrorKind, Write};
+use std::io::Write;
 
 use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
 
 // helper macro for boiler plate definitions
 #[macro_export]
 macro_rules! impl_primitive {
-    ($t:ty, $fw:ident, $fr:ident) => {
+    ($t:ty, $fw:path, $fr:path) => {
         impl ToNetworkOrder for $t {
             fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-                buffer.$fw::<BigEndian>(*self as $t)?;
+                $fw(buffer, *self as $t)?;
                 Ok(std::mem::size_of::<$t>())
             }
         }
@@ -20,65 +20,70 @@ macro_rules! impl_primitive {
                 &mut self,
                 buffer: &mut std::io::Cursor<&'a [u8]>,
             ) -> std::io::Result<()> {
-                let value = buffer.$fr::<BigEndian>()?;
-                match <$t>::try_from(value) {
-                    Ok(ct) => {
-                        *self = ct;
-                        Ok(())
-                    }
-                    Err(_) => Err(Error::new(
-                        ErrorKind::Other,
-                        format!("cannot convert value {}", value),
-                    )),
-                }
+                *self = $fr(buffer)?;
+                Ok(())
             }
         }
     };
 }
 
-// define impl for signed integers
-impl ToNetworkOrder for i8 {
-    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-        buffer.write_i8(*self)?;
-        Ok(1)
-    }
-}
+// signed
+impl_primitive!(i8, WriteBytesExt::write_i8, ReadBytesExt::read_i8);
+impl_primitive!(
+    i16,
+    WriteBytesExt::write_i16::<BigEndian>,
+    ReadBytesExt::read_i16::<BigEndian>
+);
+impl_primitive!(
+    i32,
+    WriteBytesExt::write_i32::<BigEndian>,
+    ReadBytesExt::read_i32::<BigEndian>
+);
+impl_primitive!(
+    i64,
+    WriteBytesExt::write_i64::<BigEndian>,
+    ReadBytesExt::read_i64::<BigEndian>
+);
+impl_primitive!(
+    i128,
+    WriteBytesExt::write_i128::<BigEndian>,
+    ReadBytesExt::read_i128::<BigEndian>
+);
 
-impl<'a> FromNetworkOrder<'a> for i8 {
-    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
-        *self = buffer.read_i8()?;
-        Ok(())
-    }
-}
+// unsigned
+impl_primitive!(u8, WriteBytesExt::write_u8, ReadBytesExt::read_u8);
+impl_primitive!(
+    u16,
+    WriteBytesExt::write_u16::<BigEndian>,
+    ReadBytesExt::read_u16::<BigEndian>
+);
+impl_primitive!(
+    u32,
+    WriteBytesExt::write_u32::<BigEndian>,
+    ReadBytesExt::read_u32::<BigEndian>
+);
+impl_primitive!(
+    u64,
+    WriteBytesExt::write_u64::<BigEndian>,
+    ReadBytesExt::read_u64::<BigEndian>
+);
+impl_primitive!(
+    u128,
+    WriteBytesExt::write_u128::<BigEndian>,
+    ReadBytesExt::read_u128::<BigEndian>
+);
 
-impl_primitive!(i16, write_i16, read_i16);
-impl_primitive!(i32, write_i32, read_i32);
-impl_primitive!(i64, write_i64, read_i64);
-impl_primitive!(i128, write_i128, read_i128);
-
-// define impl for unsigned integers
-impl ToNetworkOrder for u8 {
-    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-        buffer.write_u8(*self)?;
-        Ok(1)
-    }
-}
-
-impl<'a> FromNetworkOrder<'a> for u8 {
-    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
-        *self = buffer.read_u8()?;
-        Ok(())
-    }
-}
-
-impl_primitive!(u16, write_u16, read_u16);
-impl_primitive!(u32, write_u32, read_u32);
-impl_primitive!(u64, write_u64, read_u64);
-impl_primitive!(u128, write_u128, read_u128);
-
-// floats
-impl_primitive!(f32, write_f32, read_f32);
-impl_primitive!(f64, write_f64, read_f64);
+// // floats
+impl_primitive!(
+    f32,
+    WriteBytesExt::write_f32::<BigEndian>,
+    ReadBytesExt::read_f32::<BigEndian>
+);
+impl_primitive!(
+    f64,
+    WriteBytesExt::write_f64::<BigEndian>,
+    ReadBytesExt::read_f64::<BigEndian>
+);
 
 impl ToNetworkOrder for char {
     /// ```
