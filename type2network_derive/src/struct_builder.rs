@@ -116,11 +116,11 @@ impl StructDeriveBuilder {
 fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap();
 
+    //find the attribute containing #[deser]
     let deser_attr = field
         .attrs
         .iter()
         .find(|attr| attr.path().is_ident("deser"));
-    println!("x============> {:?}", deser_attr);
 
     // we only support 1 attribute
     // if field.attrs.len() > 1 {
