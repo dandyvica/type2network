@@ -116,14 +116,20 @@ impl StructDeriveBuilder {
 fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap();
 
+    let deser_attr = field
+        .attrs
+        .iter()
+        .find(|attr| attr.path().is_ident("deser"));
+    println!("x============> {:?}", deser_attr);
+
     // we only support 1 attribute
-    if field.attrs.len() > 1 {
-        unimplemented!("only support a single attribue on field {}", field_name);
-    }
+    // if field.attrs.len() > 1 {
+    //     unimplemented!("only support a single attribue on field {}", field_name);
+    // }
 
     // analyze attribute
-    let kind = if field.attrs.len() == 1 {
-        process_attr(&field.attrs[0])
+    let kind = if let Some(deser) = deser_attr {
+        process_attr(&deser)
     } else {
         AttrKind::NoAttribute
     };

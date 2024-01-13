@@ -1,4 +1,5 @@
-//! All functions/trait to convert DNS structures to network order back & forth
+//! All functions/trait to convert DNS structures to network order back & forth for
+//! primitive types.
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Write;
 

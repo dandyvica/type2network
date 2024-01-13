@@ -19,7 +19,7 @@ pub fn to_network(input: TokenStream) -> TokenStream {
         input,
         Some(EnumDeriveBuilder::to_network),
         StructDeriveBuilder::to_network,
-        false
+        false,
     )
 }
 
@@ -29,7 +29,7 @@ pub fn from_network(input: TokenStream) -> TokenStream {
         input,
         Some(EnumDeriveBuilder::from_network),
         StructDeriveBuilder::from_network,
-        false
+        false,
     )
 }
 
@@ -37,7 +37,7 @@ fn derive_helper(
     input: TokenStream,
     enum_builder: Option<EnumBuilder>,
     struct_builder: StructBuilder,
-    print_code: bool
+    print_code: bool,
 ) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
 
@@ -51,7 +51,7 @@ fn derive_helper(
     };
 
     if print_code {
-       println!("{}", code);
+        println!("{}", code);
     }
 
     code.into()

@@ -14,6 +14,7 @@ pub trait FromNetworkOrder<'a> {
 pub mod additional;
 pub mod cell;
 pub mod generics;
+pub mod net;
 pub mod primitive;
 
 #[cfg(test)]

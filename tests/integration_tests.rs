@@ -1,5 +1,6 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 
+use serde::Serialize;
 // some tests for structs
 use type2network::{FromNetworkOrder, ToNetworkOrder};
 use type2network_derive::{FromNetwork, ToNetwork};
@@ -318,6 +319,19 @@ fn struct_attr_code() {
 fn struct_debug() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
     struct PointDebug {
+        #[deser(debug)]
+        x: u16,
+
+        #[deser(debug)]
+        y: u16,
+    }
+}
+
+#[test]
+fn struct_serde() {
+    #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork, Serialize)]
+    struct PointDebug {
+        #[serde(skip_serializing)]
         #[deser(debug)]
         x: u16,
 
