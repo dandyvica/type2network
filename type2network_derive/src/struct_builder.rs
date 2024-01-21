@@ -150,7 +150,7 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
         // e.g.: #[deser(my_func)]
         AttrKind::Call(func) => {
             quote! {
-                #func(self);
+                #func(self)?;
             }
         }
 

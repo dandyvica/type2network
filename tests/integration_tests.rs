@@ -273,8 +273,9 @@ fn struct_attr_no() {
 #[test]
 fn struct_attr_fn() {
     // this function will be called whenever the attrbiute is found
-    fn update(p: &mut PointFn) {
+    fn update(p: &mut PointFn) -> std::io::Result<()> {
         p.z = 3;
+        Ok(())
     }
 
     #[derive(Debug, Default, PartialEq, FromNetwork)]

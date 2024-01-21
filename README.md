@@ -19,7 +19,7 @@ pub trait FromNetworkOrder<'a> {
 }
 ```
 
-It's using the ```byteorder``` crate in order to convert integers or floats to a BigEndian buffer of ```u8```.
+It's using the ```byteorder``` crate in order to convert integers or floats to a bigendian buffer of ```u8```. It is compatible with other attributes like those provided by ```serde```.
 
 ## How to use it ?
 
@@ -34,9 +34,10 @@ The ```FromNetworkOrder``` is only supported for unit-like enums. For the ```ToN
 ## The #[deser] attribute
 In addition it's possible to add a field attribute on a field for structs for the ```FromNetworkOrder``` trait:
 
-* ```#[deser(ignore)]``` : the field is not deserialized
-* ```#[deser(with_fn(func))]``` : the function ```func``` is called on ```&mut self``` for that field
-* ```#[deser(with_code(code))]``` : the ```code``` block is injected
+* ```#[deser(ignore)]``` : the field is not deserialized.
+* ```#[deser(debug)]``` : a ```dbg!(self.field_name)``` statement is inserted after the field is deserialized.
+* ```#[deser(with_fn(func))]``` : the function ```func(&mut self) -> std::io::Result<()>``` is called for that field.
+* ```#[deser(with_code(code))]``` : the ```code``` block is injected before the field is being deserialized.
 
 Examples:
 
@@ -98,6 +99,12 @@ struct PointCode {
 | ```RefCell<T>``` | yes     |yes|
 | ```Box<dyn ToNetworkOrder>``` | yes     |no|
 | ```Box<dyn FromNetworkOrder<'a>>``` | no     |yes|
+| ```Ipv4Addr``` | yes     |yes|
+| ```Ipv6Addr``` | yes     |yes|
+| ```Either<L,R>``` | yes     |no|
+| ```Bytes``` | yes     |no|
+| ```BytesMut``` | no     |yes|
+
 
 
 
