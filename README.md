@@ -1,3 +1,5 @@
+[![Actions](https://github.com/dandyvica/siphash_c_d/actions/workflows/rust.yml/badge.svg)](https://github.com/dandyvica/siphash_c_d/actions/workflows/rust.yml)
+
 # type2network
 Traits and procedural macros to convert structures and enums into bigendian data streams.
 
