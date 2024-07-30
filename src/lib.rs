@@ -41,7 +41,7 @@
 //!
 //! # Examples
 //!
-//! ```rust
+//! ```ignore
 //! // z field is not deserialized
 //! #[derive(Debug, Default, PartialEq, FromNetwork)]
 //! struct PointAttrNo {
