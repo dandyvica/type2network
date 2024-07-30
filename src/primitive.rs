@@ -3,10 +3,10 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use std::io::Write;
 
-use crate::{impl_primitive, FromNetworkOrder, ToNetworkOrder};
+use crate::{FromNetworkOrder, ToNetworkOrder};
 
 // helper macro for boiler plate definitions
-#[macro_export]
+//#[macro_export]
 macro_rules! impl_primitive {
     ($t:ty, $fw:path, $fr:path) => {
         impl ToNetworkOrder for $t {
@@ -87,12 +87,18 @@ impl_primitive!(
 );
 
 impl ToNetworkOrder for char {
+    /// ```char``` is serialized as 4 bytes.
+    /// Example:
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
     /// let mut buffer = Vec::new();;
     /// assert_eq!('💯'.serialize_to(&mut buffer).unwrap(), 4);
     /// assert_eq!(buffer, [0, 1, 244, 175]);
+    ///
+    /// buffer.clear();
+    /// assert_eq!('a'.serialize_to(&mut buffer).unwrap(), 4);
+    /// assert_eq!(buffer, [0, 0, 0, 97]);
     /// ```
     fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
         let u = *self as u32;
@@ -103,6 +109,7 @@ impl ToNetworkOrder for char {
 }
 
 impl<'a> FromNetworkOrder<'a> for char {
+    /// Example:    
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -124,6 +131,7 @@ impl<'a> FromNetworkOrder<'a> for char {
 }
 
 impl ToNetworkOrder for &[u8] {
+    /// Example:    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -137,7 +145,15 @@ impl ToNetworkOrder for &[u8] {
     }
 }
 
+// can't implement this
+impl<'a> FromNetworkOrder<'a> for &'a [u8] {
+    fn deserialize_from(&mut self, _buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+        unimplemented!("the deserialize_from() method can't be implemented on &[u8]")
+    }
+}
+
 impl<'a> ToNetworkOrder for &'a str {
+    /// Example:    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -159,6 +175,7 @@ impl<'a> FromNetworkOrder<'a> for &'a str {
 }
 
 impl ToNetworkOrder for String {
+    /// Example:
     /// ```
     /// use type2network::ToNetworkOrder;
     ///

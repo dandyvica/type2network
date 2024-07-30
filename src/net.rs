@@ -4,6 +4,7 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use crate::{FromNetworkOrder, ToNetworkOrder};
 
 impl ToNetworkOrder for Ipv4Addr {
+    /// Example:    
     /// ```
     /// use std::str::FromStr;
     /// use type2network::ToNetworkOrder;
@@ -19,6 +20,7 @@ impl ToNetworkOrder for Ipv4Addr {
 }
 
 impl<'a> FromNetworkOrder<'a> for Ipv4Addr {
+    /// Example:    
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -40,6 +42,7 @@ impl<'a> FromNetworkOrder<'a> for Ipv4Addr {
 }
 
 impl ToNetworkOrder for Ipv6Addr {
+    /// Example:    
     /// ```
     /// use std::str::FromStr;
     /// use type2network::ToNetworkOrder;
@@ -55,6 +58,7 @@ impl ToNetworkOrder for Ipv6Addr {
 }
 
 impl<'a> FromNetworkOrder<'a> for Ipv6Addr {
+    /// Example:    
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;

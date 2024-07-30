@@ -15,4 +15,12 @@ bytes = "1.5.0"
 enum_from = { git = "https://github.com/dandyvica/enum_from.git" }
 serde = { version = "1.0.195", features = [ "derive" ] }
 
+[[example]]
+name = "ntp"
+src = "examples/ntp.rs"
+
+[[example]]
+name = "dns"
+src = "examples/dns.rs"
+
 

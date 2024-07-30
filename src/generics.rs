@@ -5,6 +5,7 @@ use std::marker::PhantomData;
 use crate::{FromNetworkOrder, ToNetworkOrder};
 
 impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
+    /// # Example
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -21,12 +22,14 @@ impl<T: ToNetworkOrder> ToNetworkOrder for Option<T> {
         if self.is_none() {
             Ok(0)
         } else {
+            // safe to unwrap here
             self.as_ref().unwrap().serialize_to(buffer)
         }
     }
 }
 
 impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
+    /// # Example    
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -47,12 +50,14 @@ impl<'a, T: FromNetworkOrder<'a>> FromNetworkOrder<'a> for Option<T> {
         if self.is_none() {
             Ok(())
         } else {
+            // safe to unwrap here
             self.as_mut().unwrap().deserialize_from(buffer)
         }
     }
 }
 
 impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
+    /// # Example    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -77,6 +82,7 @@ impl<T: ToNetworkOrder, const N: usize> ToNetworkOrder for [T; N] {
 }
 
 impl<'a, T: FromNetworkOrder<'a>, const N: usize> FromNetworkOrder<'a> for [T; N] {
+    /// # Example       
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -105,6 +111,7 @@ impl<T> ToNetworkOrder for Vec<T>
 where
     T: ToNetworkOrder,
 {
+    /// # Example    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -129,6 +136,10 @@ impl<'a, T> FromNetworkOrder<'a> for Vec<T>
 where
     T: Default + FromNetworkOrder<'a>,
 {
+    /// To be able to use this method on a vector, should be defined with the [`std::vec::Vec::with_capacity`]
+    /// method to be usable.
+    ///
+    /// # Example    
     /// ```
     /// use std::io::Cursor;
     /// use type2network::FromNetworkOrder;
@@ -162,6 +173,7 @@ impl<T> ToNetworkOrder for Box<T>
 where
     T: ToNetworkOrder,
 {
+    /// # Example    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -180,6 +192,7 @@ impl<'a, T> FromNetworkOrder<'a> for Box<T>
 where
     T: FromNetworkOrder<'a>,
 {
+    /// # Example    
     /// ```
     /// use std::io::Cursor;
     /// use std::ops::Deref;
@@ -198,6 +211,7 @@ where
 }
 
 impl ToNetworkOrder for Box<dyn ToNetworkOrder> {
+    /// # Example    
     /// ```
     /// use type2network::ToNetworkOrder;
     ///
@@ -213,6 +227,7 @@ impl ToNetworkOrder for Box<dyn ToNetworkOrder> {
 }
 
 impl<'a> FromNetworkOrder<'a> for Box<dyn FromNetworkOrder<'a>> {
+    /// # Example    
     /// ```
     /// use std::io::Cursor;
     /// use std::ops::Deref;

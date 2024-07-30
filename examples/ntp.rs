@@ -1,11 +1,12 @@
 // NTP protocol implemebtation
-use std::{error::Error, io::Cursor};
 use std::net::UdpSocket;
+use std::{error::Error, io::Cursor};
 
 // need this to serialize/deserialize to network
 use type2network::{FromNetworkOrder, ToNetworkOrder};
 use type2network_derive::{FromNetwork, ToNetwork};
 
+// https://datatracker.ietf.org/doc/html/rfc4330
 // 1                   2                   3
 // 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9  0  1
 // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -44,7 +45,7 @@ use type2network_derive::{FromNetwork, ToNetwork};
 
 #[derive(Debug, Default, ToNetwork, FromNetwork)]
 struct Header {
-    values: u8,  // includes Leap Indicator, Version Number & Mode
+    values: u8, // includes Leap Indicator, Version Number & Mode
     stratum: u8,
     poll: u8,
     precision: u8,
@@ -79,13 +80,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // serialize to send the SNTP packet through the wire using UDP
     let mut buffer: Vec<u8> = Vec::new();
-    ntp.serialize_to(&mut buffer)?;    
-    
+    ntp.serialize_to(&mut buffer)?;
+
     // bind to an ephemeral local port
     let socket = UdpSocket::bind("0.0.0.0:0")?;
 
     // send packet to destination
-    //let dest = format!("{}:123", "fr.pool.ntp.org");
     let dest = "fr.pool.ntp.org:123";
     socket.send_to(&buffer, dest)?;
 
@@ -95,9 +95,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut cursor = Cursor::new(&recbuf[..received]);
 
     // get response
+    ntp = SNTPPacket::default();
     ntp.deserialize_from(&mut cursor)?;
-    println!("{:?}", ntp);
+    println!("{:#?}", ntp);
 
-    Ok(()) 
-
+    Ok(())
 }

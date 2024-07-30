@@ -9,6 +9,7 @@ where
     L: ToNetworkOrder,
     R: ToNetworkOrder,
 {
+    /// Example:    
     /// ```
     /// use either::*;
     /// use type2network::ToNetworkOrder;
@@ -34,6 +35,7 @@ where
 }
 
 impl ToNetworkOrder for Bytes {
+    /// Example:
     /// ```
     /// use bytes::Bytes;
     /// use type2network::ToNetworkOrder;
@@ -51,6 +53,7 @@ impl ToNetworkOrder for Bytes {
 }
 
 impl<'a> FromNetworkOrder<'a> for BytesMut {
+    /// Example:    
     /// ```
     /// use std::io::Cursor;
     /// use bytes::BytesMut;
