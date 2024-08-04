@@ -8,9 +8,6 @@ use struct_builder::{StructBuilder, StructDeriveBuilder};
 mod r#enum;
 use r#enum::{EnumBuilder, EnumDeriveBuilder};
 
-// mod enum_builder;
-// use enum_builder::{EnumBuilder, EnumDeriveBuilder};
-
 mod generics;
 
 #[proc_macro_derive(ToNetwork)]
@@ -23,7 +20,7 @@ pub fn to_network(input: TokenStream) -> TokenStream {
     )
 }
 
-#[proc_macro_derive(FromNetwork, attributes(deser))]
+#[proc_macro_derive(FromNetwork, attributes(from_network))]
 pub fn from_network(input: TokenStream) -> TokenStream {
     derive_helper(
         input,

@@ -1,11 +1,12 @@
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
+use num_enum::{FromPrimitive, TryFromPrimitive};
 
 use serde::Serialize;
 // some tests for structs
 use type2network::{FromNetworkOrder, ToNetworkOrder};
 use type2network_derive::{FromNetwork, ToNetwork};
 
-use enum_from::EnumTryFrom;
+// use enum_from::EnumTryFrom;
 
 // used for boiler plate unit tests for integers, floats etc
 pub fn to_network_test<T: ToNetworkOrder>(val: &T, size: usize, v: &[u8]) {
@@ -108,6 +109,7 @@ fn struct_lifetime_to() {
 }
 
 #[test]
+#[allow(dead_code)]
 fn struct_lifetime_from() {
     #[derive(Debug, PartialEq, FromNetwork)]
     struct DataLifeTimeWithTypeParam<'a, T, V>
@@ -167,7 +169,8 @@ fn enum_c_like() {
 #[test]
 #[allow(dead_code)]
 fn enum_simple() {
-    #[derive(Debug, Default, PartialEq, Copy, Clone, ToNetwork, FromNetwork, EnumTryFrom)]
+    #[derive(Debug, Default, PartialEq, Copy, Clone, TryFromPrimitive, ToNetwork, FromNetwork)]
+    #[from_network(TryFrom)]
     #[repr(u64)]
     enum Color {
         #[default]
@@ -185,7 +188,8 @@ fn enum_simple() {
 #[test]
 #[allow(dead_code)]
 fn enum_opcode() {
-    #[derive(Debug, Copy, Clone, PartialEq, EnumTryFrom, ToNetwork, FromNetwork)]
+    #[derive(Debug, Copy, Clone, PartialEq, ToNetwork, FromNetwork, FromPrimitive)]
+    #[from_network(From)]    
     #[repr(u16)]
     pub enum OpCodeReserved {
         Query = 0,  //[RFC1035]
@@ -196,7 +200,7 @@ fn enum_opcode() {
         Update = 5, // [RFC2136]
         DOS = 6,    // DNS Stateful Operations (DSO)	[RFC8490]
 
-        #[fallback]
+        #[num_enum(catch_all)]
         Reserved(u16),
     }
 
@@ -205,6 +209,8 @@ fn enum_opcode() {
             OpCodeReserved::Query
         }
     }
+
+
 
     let op = OpCodeReserved::IQuery;
     to_network_test(&op, 2, &[0, 1]);
@@ -258,7 +264,7 @@ fn struct_attr_no() {
         y: u16,
 
         // last field is not deserialized
-        #[deser(ignore)]
+        #[from_network(ignore)]
         z: u16,
     }
 
@@ -284,7 +290,7 @@ fn struct_attr_fn() {
         y: u16,
 
         // last field is not deserialized
-        #[deser(with_fn(update))]
+        #[from_network(with_fn(update))]
         z: u16,
     }
 
@@ -304,7 +310,7 @@ fn struct_attr_code() {
         y: u16,
 
         // last field is not deserialized
-        #[deser(with_code(self.z = 0xFFFF;))]
+        #[from_network(with_code(self.z = 0xFFFF;))]
         z: u16,
     }
 
@@ -320,10 +326,10 @@ fn struct_attr_code() {
 fn struct_debug() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
     struct PointDebug {
-        #[deser(debug)]
+        #[from_network(debug)]
         x: u16,
 
-        #[deser(debug)]
+        #[from_network(debug)]
         y: u16,
     }
 }
@@ -333,10 +339,10 @@ fn struct_serde() {
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork, Serialize)]
     struct PointDebug {
         #[serde(skip_serializing)]
-        #[deser(debug)]
+        #[from_network(debug)]
         x: u16,
 
-        #[deser(debug)]
+        #[from_network(debug)]
         y: u16,
     }
 }

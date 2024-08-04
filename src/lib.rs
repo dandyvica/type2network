@@ -1,4 +1,4 @@
-//! Traits and procedural macros to convert structures and enums into bigendian data streams.
+//! Traits and procedural macros to convert structures and enums into `bigendian` data streams.
 //!
 //! It's used to send struct or enum data to the wire, or receive them from the wire.
 //! The trait is defined as:
@@ -18,7 +18,7 @@
 //! }
 //! ```
 //!
-//! It's using the [`byteorder`](https://docs.rs/byteorder/latest/byteorder) crate in order to convert integers or floats to a bigendian buffer of ```u8```.
+//! It's extensively using the [`byteorder`](https://docs.rs/byteorder/latest/byteorder) crate in order to convert integers or floats to a bigendian buffer of ```u8```.
 //! It is compatible with other attributes like those provided by [`serde`](https://crates.io/crates/serde) crate.
 //!
 //! ## How to use it ?
@@ -29,15 +29,17 @@
 //! * ```#[derive(ToNetwork)]``` to auto-implement the ```FromNetworkOrder``` trait
 //! * ```#[derive(ToNetwork, FromNetwork)]``` to auto-implement the ```ToNetworkOrder``` & ```FromNetworkOrder``` traits
 //!
-//! The ```FromNetworkOrder``` is only supported for C-like enums. For the ```ToNetworkOrder``` trait on C-like enums, it needs to be ```Copy, Clone```.
+//! The ```ToNetworkOrder``` trait is supported for all structs or enums containing supported types (see below for a list of supported types).
+//! 
+//! The ```FromNetworkOrder``` trait is only supported for C-like unit-only enums. For the ```ToNetworkOrder``` trait on C-like enums, it needs to be ```Copy, Clone```.
 //!
-//! ## The ```#[deser]``` attribute
+//! ## The ```#[from_network]``` field attribute
 //! In addition it's possible to add a field attribute on a struct's field for the ```FromNetworkOrder``` trait:
 //!
-//! * ```#[deser(ignore)]``` : the field is not deserialized.
-//! * ```#[deser(debug)]``` : a ```dbg!(self.field_name)``` statement is inserted after the field is being deserialized.
-//! * ```#[deser(with_fn(func))]``` : the function ```func(&mut self) -> std::io::Result<()>``` is called for that field.
-//! * ```#[deser(with_code(code))]``` : the ```code``` block is injected before the field is being deserialized.
+//! * ```#[from_network(ignore)]``` : the field is not deserialized.
+//! * ```#[from_network(debug)]``` : a ```dbg!(self.field_name)``` statement is inserted after the field is being deserialized.
+//! * ```#[from_network(with_fn(func))]``` : the function ```func(&mut self) -> std::io::Result<()>``` is called for that field.
+//! * ```#[from_network(with_code(block))]``` : the ```code``` block is injected before the field is being deserialized.
 //!
 //! # Examples
 //!
@@ -49,12 +51,12 @@
 //!     y: u16,
 //!
 //!     // last field is not deserialized
-//!     #[deser(ignore)]
+//!     #[from_network(ignore)]
 //!     z: u16,
 //! }
 //!
 //! // this function will be called for z field
-//! fn update(p: &mut PointFn) {
+//! fn update(p: &mut PointFn) -> std::io::Result<()> {
 //!     p.z = 3;
 //! }
 //!
@@ -64,7 +66,7 @@
 //!     y: u16,
 //!
 //!     // last field is not deserialized
-//!     #[deser(with_fn(update))]
+//!     #[from_network(with_fn(update))]
 //!     z: u16,
 //! }
 //!
@@ -75,7 +77,7 @@
 //!     y: u16,
 //!
 //!     // last field is not deserialized
-//!     #[deser(with_code(self.z = 0xFFFF;))]
+//!     #[from_network(with_code(self.z = 0xFFFF;))]
 //!     z: u16,
 //! }
 //! ```
@@ -107,12 +109,12 @@
 //!
 //! ## Examples
 //! Two examples can be found in the ```examples``` directory:
-//! 
+//!
 //! * ntp
 //! * dns
-//! 
-//! In general, you should add the ```#[derive(ToNetwork, FromNetwork)]``` derives to benefit from the procedural macros which automatically convert structure to network order back and forth. They are included using:
-//! 
+//!
+//! In general, you should add the ```#[derive(ToNetwork, FromNetwork)]``` derive macros to benefit from the procedural macros which automatically convert structure to network order back and forth. They are included using:
+//!
 //! ```rust
 //! use type2network::{FromNetworkOrder, ToNetworkOrder};
 //! use type2network_derive::{FromNetwork, ToNetwork};

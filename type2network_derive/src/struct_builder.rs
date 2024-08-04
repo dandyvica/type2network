@@ -117,18 +117,13 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     let field_name = field.ident.as_ref().unwrap();
 
     //find the attribute containing #[deser]
-    let deser_attr = field
+    let from_attr = field
         .attrs
         .iter()
-        .find(|attr| attr.path().is_ident("deser"));
-
-    // we only support 1 attribute
-    // if field.attrs.len() > 1 {
-    //     unimplemented!("only support a single attribue on field {}", field_name);
-    // }
+        .find(|attr| attr.path().is_ident("from_network"));
 
     // analyze attribute
-    let kind = if let Some(deser) = deser_attr {
+    let kind = if let Some(deser) = from_attr {
         process_attr(&deser)
     } else {
         AttrKind::NoAttribute
@@ -178,8 +173,8 @@ fn process_attr(attr: &Attribute) -> AttrKind {
     }
 
     // the only attribute we process is "deser"
-    if !attr.path().is_ident("deser") {
-        unimplemented!("only #[deser] is a valid attribute");
+    if !attr.path().is_ident("from_network") {
+        unimplemented!("only #[from_network] is a valid attribute");
     }
 
     let mut kind = AttrKind::default();
@@ -203,7 +198,7 @@ fn process_attr(attr: &Attribute) -> AttrKind {
                 return Ok(());
             }
 
-            unimplemented!("malformed deser(with_fn) attribute")
+            unimplemented!("malformed from_network(with_fn) attribute")
         }
 
         // #[deser(with_block({ let x = 9; }))]
@@ -218,7 +213,7 @@ fn process_attr(attr: &Attribute) -> AttrKind {
                 return Ok(());
             }
 
-            unimplemented!("deser attribute meta not supported")
+            unimplemented!("#from_network attribute meta not supported")
         }
 
         // #[deser(debug)]
@@ -227,7 +222,7 @@ fn process_attr(attr: &Attribute) -> AttrKind {
             return Ok(());
         }
 
-        Err(meta.error("unrecognized deser attribute"))
+        Err(meta.error("unrecognized #from_network attribute"))
     });
 
     kind
