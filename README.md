@@ -10,7 +10,7 @@ The trait is defined as:
 // function to convert to network order (big-endian)
 pub trait ToNetworkOrder {
     // copy structure data to a network-order buffer
-    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
+    fn serialize_to(&self, buffer: &mut W) -> std::io::Result<usize>;
 }
 
 // function to convert from network order (big-endian)

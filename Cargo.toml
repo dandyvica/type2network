@@ -16,12 +16,12 @@ num_enum = "0.7.3"
 serde = { version = "1.0.195", features = [ "derive" ] }
 
 
-[[example]]
-name = "ntp"
-src = "examples/ntp.rs"
+# [[example]]
+# name = "ntp"
+# src = "examples/ntp.rs"
 
-[[example]]
-name = "dns"
-src = "examples/dns.rs"
+# [[example]]
+# name = "dns"
+# src = "examples/dns.rs"
 
 

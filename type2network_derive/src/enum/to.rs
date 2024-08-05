@@ -2,7 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{DataEnum, DeriveInput, Fields, Ident, Variant};
 
-use syn_utils::*;
+use crate::syn_utils::*;
 
 use super::EnumDeriveBuilder;
 
@@ -23,8 +23,8 @@ impl EnumDeriveBuilder {
             let code = build_unit_arms(&ty.unwrap());
 
             quote! {
-                impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
-                    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+                impl #impl_generics ToNetworkOrder<W: Write> for #enum_name #ty_generics #where_clause {
+                    fn serialize_to(&self, buffer: &mut W) -> std::io::Result<usize> {
                         #code
                     }
                 }
@@ -37,8 +37,8 @@ impl EnumDeriveBuilder {
                 .map(|v| build_variant_arm(enum_name, v, &ty));
 
             quote! {
-                impl #impl_generics ToNetworkOrder for #enum_name #ty_generics #where_clause {
-                    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+                impl #impl_generics ToNetworkOrder<W: Write> for #enum_name #ty_generics #where_clause {
+                    fn serialize_to(&self, buffer: &mut W) -> std::io::Result<usize> {
                         let mut length = 0usize;
                         match self {
                             #( #arms)*

@@ -5,16 +5,17 @@
 //!
 //! ```rust
 //! // function to convert to network order (big-endian)
+//! use std::io::{Read, Write};
+//!
 //! pub trait ToNetworkOrder {
 //!     // copy structure data to a network-order buffer
-//!     fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
+//!     fn serialize_to<W: std::io::Write>(&self, buffer: &mut W) -> std::io::Result<usize>;
 //! }
 //!
 //! // function to convert from network order (big-endian)
 //! pub trait FromNetworkOrder<'a> {
 //!     // copy from a network-order buffer to a structure
-//!     fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>)
-//!         -> std::io::Result<()>;
+//!     fn deserialize_from<R: std::io::Read>(&mut self, buffer: &mut R) -> std::io::Result<()>;
 //! }
 //! ```
 //!
@@ -30,7 +31,7 @@
 //! * ```#[derive(ToNetwork, FromNetwork)]``` to auto-implement the ```ToNetworkOrder``` & ```FromNetworkOrder``` traits
 //!
 //! The ```ToNetworkOrder``` trait is supported for all structs or enums containing supported types (see below for a list of supported types).
-//! 
+//!
 //! The ```FromNetworkOrder``` trait is only supported for C-like unit-only enums. For the ```ToNetworkOrder``` trait on C-like enums, it needs to be ```Copy, Clone```.
 //!
 //! ## The ```#[from_network]``` field attribute
@@ -120,18 +121,36 @@
 //! use type2network_derive::{FromNetwork, ToNetwork};
 //! ```
 
+use std::io::{Read, Result, Write};
+
 /// Copy structured data to a network-order buffer. Could be used on a ```struct```, an ```enum```, but
 /// not an ```union```.
-pub trait ToNetworkOrder {
+pub trait ToNetworkOrder<W: Write> {
     /// Returns the number of bytes copied or an [`std::io::Error`] error if any.
-    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize>;
+    fn serialize_to(&self, buffer: &mut W) -> Result<usize>;
 }
 
 /// Copy data from a network-order buffer to structured data.
-pub trait FromNetworkOrder<'a> {
+pub trait FromNetworkOrder<'a, R: Read> {
     /// Copy data from a network-order buffer to structured data.
-    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()>;
+    fn deserialize_from(&mut self, buffer: &mut R) -> Result<()>;
 }
+
+pub trait ToNetworkOrder2 {
+    type Writer;
+
+    /// Returns the number of bytes copied or an [`std::io::Error`] error if any.
+    fn serialize_to(&self, buffer: &mut Self::Writer) -> Result<usize> where Self::Writer: Write;
+}
+
+impl ToNetworkOrder2 for u16 {
+    type Writer;
+
+    fn serialize_to(&self, buffer: &mut Self::Writer) -> std::io::Result<usize> where Self::Writer: Write {
+        Ok(2)            
+    }   
+}
+
 
 // all definitions of serialize_to()/deserialize_from() for standard types
 mod additional;
@@ -146,7 +165,7 @@ pub mod test_helpers {
     use std::io::Cursor;
 
     // used for boiler plate unit tests for integers
-    pub fn to_network_test<T: ToNetworkOrder>(val: T, size: usize, v: &[u8]) {
+    pub fn to_network_test<T: ToNetworkOrder<Vec<u8>>>(val: T, size: usize, v: &[u8]) {
         let mut buffer: Vec<u8> = Vec::new();
         assert_eq!(val.serialize_to(&mut buffer).unwrap(), size);
         assert_eq!(buffer, v);
@@ -155,7 +174,7 @@ pub mod test_helpers {
     // used for boiler plate unit tests for integers, floats etc
     pub fn from_network_test<'a, T>(def: Option<T>, val: T, buf: &'a Vec<u8>)
     where
-        T: FromNetworkOrder<'a> + Default + std::fmt::Debug + std::cmp::PartialEq,
+        T: FromNetworkOrder<'a, Cursor<&'a [u8]>> + Default + std::fmt::Debug + std::cmp::PartialEq,
     {
         let mut buffer = Cursor::new(buf.as_slice());
         let mut v: T = if def.is_none() {

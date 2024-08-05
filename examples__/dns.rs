@@ -2,7 +2,7 @@
 
 // NTP protocol implemebtation
 use std::net::{Ipv4Addr, UdpSocket};
-use std::{error::Error, io::Cursor};
+use std::{error::Error, io::Cursor, io::Read, io::Write};
 
 // need this to serialize/deserialize to network
 use type2network::{FromNetworkOrder, ToNetworkOrder};

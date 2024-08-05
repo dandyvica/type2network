@@ -1,10 +1,11 @@
+use proc_macro2::Span;
 use quote::quote;
 use syn::{
-    parenthesized, token, AttrStyle, Attribute, DataStruct, DeriveInput, Field, Fields, Ident,
-    Index,
+    parenthesized, parse_quote, token, AttrStyle, Attribute, DataStruct, DeriveInput, Field,
+    Fields, GenericParam, Ident, Index, TypeParam,
 };
 
-use crate::generics::process_generics;
+use crate::syn_utils::{add_writer_param, process_generics, TraitTypeParam};
 
 pub struct StructDeriveBuilder;
 pub type StructBuilder = fn(&DeriveInput, &DataStruct) -> proc_macro2::TokenStream;
@@ -56,11 +57,17 @@ impl StructDeriveBuilder {
             }
         });
 
-        let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+        // save original type parameters because we're going to add one (WRITER) and we don't
+        // want it to pollute the type parameters of the structure we're processing
+        let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
+
+        // add the WRITER type param to ToNetworkOrder generic trait
+        let new_generics = add_writer_param(&ast.generics, TraitTypeParam::Writer, false);
+        let (new_impl_generics, _, _) = new_generics.split_for_impl();
 
         quote! {
-            impl #impl_generics ToNetworkOrder for #struct_name #ty_generics #where_clause {
-                fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+            impl #new_impl_generics ToNetworkOrder<WRITER> for #struct_name #ty_generics #where_clause {
+                fn serialize_to(&self, buffer: &mut WRITER) -> std::io::Result<usize> {
                     let mut length = 0usize;
                     #( #method_calls)*
                     Ok(length)
@@ -92,13 +99,17 @@ impl StructDeriveBuilder {
             }
         });
 
+        // save original type parameters because we're going to add one (READER) and we don't
+        // want it to pollute the type parameters of the structure we're processing
         let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
-        let gen_clone = process_generics(ast);
-        let (impl_generics2, _, _) = gen_clone.split_for_impl();
+
+        // add the WRITER type param to  generic trait FromNetworkOrder and its lifetime
+        let new_generics = add_writer_param(&ast.generics, TraitTypeParam::Reader, true);
+        let (new_impl_generics, _, _) = new_generics.split_for_impl();
 
         quote! {
-            impl #impl_generics2 FromNetworkOrder<'a> for #struct_name #ty_generics #where_clause {
-                fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+            impl #new_impl_generics FromNetworkOrder<'fromnet, READER> for #struct_name #ty_generics #where_clause {
+                fn deserialize_from(&mut self, buffer: &mut READER) -> std::io::Result<()> {
                     #( #method_calls)*
                     Ok(())
                 }
@@ -165,14 +176,14 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     }
 }
 
-//process the #[deser] attribute for all different cases
+//process the #[from_network] attribute for all different cases
 fn process_attr(attr: &Attribute) -> AttrKind {
     // outer attribute only
     if attr.style != AttrStyle::Outer {
         unimplemented!("attribute {:?} is not on outer attribute", attr);
     }
 
-    // the only attribute we process is "deser"
+    // the only attribute we process is "from_network"
     if !attr.path().is_ident("from_network") {
         unimplemented!("only #[from_network] is a valid attribute");
     }

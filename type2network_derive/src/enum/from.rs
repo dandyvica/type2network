@@ -2,7 +2,7 @@ use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 use syn::{Attribute, DataEnum, DeriveInput};
 
-use syn_utils::*;
+use crate::syn_utils::*;
 
 use super::EnumDeriveBuilder;
 
@@ -22,8 +22,8 @@ impl EnumDeriveBuilder {
         // the implementation of FromNetworkOrder depends on whether From or TryFrom is implemented
         match implemented_trait {
             TryFromOrFrom::From => quote! {
-                impl<'a> FromNetworkOrder<'a> for #enum_name {
-                    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+                impl<'a, R:Read> FromNetworkOrder<'a, R> for #enum_name {
+                    fn deserialize_from(&mut self, buffer: &mut R) -> std::io::Result<()> {
                         #value_expr
                         *self = <#enum_name>::from(value);
                         Ok(())
@@ -31,8 +31,8 @@ impl EnumDeriveBuilder {
                 }
             },
             TryFromOrFrom::TryFrom => quote! {
-                impl<'a> FromNetworkOrder<'a> for #enum_name {
-                    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+                impl<'a, R:Read> FromNetworkOrder<'a, R> for #enum_name {
+                    fn deserialize_from(&mut self, buffer: &mut R) -> std::io::Result<()> {
                         #value_expr
                         match <#enum_name>::try_from(value) {
                             Ok(ct) => {
