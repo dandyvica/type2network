@@ -112,12 +112,12 @@ fn struct_lifetime_to() {
 #[allow(dead_code)]
 fn struct_lifetime_from() {
     #[derive(Debug, PartialEq, FromNetwork)]
-    struct DataLifeTimeWithTypeParam<'a, T, V>
+    struct DataLifeTimeWithTypeParam<'fromnet, T, V>
     where
-        T: FromNetworkOrder<'a>,
-        V: FromNetworkOrder<'a>,
+        T: FromNetworkOrder<'fromnet>,
+        V: FromNetworkOrder<'fromnet>,
     {
-        x: &'a str,
+        x: &'fromnet str,
         y: T,
         z: Option<V>,
     }
@@ -189,7 +189,7 @@ fn enum_simple() {
 #[allow(dead_code)]
 fn enum_opcode() {
     #[derive(Debug, Copy, Clone, PartialEq, ToNetwork, FromNetwork, FromPrimitive)]
-    #[from_network(From)]    
+    #[from_network(From)]
     #[repr(u16)]
     pub enum OpCodeReserved {
         Query = 0,  //[RFC1035]
@@ -209,8 +209,6 @@ fn enum_opcode() {
             OpCodeReserved::Query
         }
     }
-
-
 
     let op = OpCodeReserved::IQuery;
     to_network_test(&op, 2, &[0, 1]);

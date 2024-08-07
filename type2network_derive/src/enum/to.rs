@@ -2,7 +2,7 @@ use proc_macro2::{Span, TokenStream};
 use quote::{format_ident, quote};
 use syn::{DataEnum, DeriveInput, Fields, Ident, Variant};
 
-use syn_utils::*;
+use crate::syn_utils::*;
 
 use super::EnumDeriveBuilder;
 

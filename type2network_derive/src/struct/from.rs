@@ -1,77 +1,16 @@
 use quote::quote;
 use syn::{
-    parenthesized, token, AttrStyle, Attribute, DataStruct, DeriveInput, Field, Fields, Ident,
-    Index,
+    parenthesized, token, AttrStyle, Attribute, DataStruct, DeriveInput, Field, Ident, Index,
 };
 
-use crate::generics::process_generics;
+use crate::{r#struct::is_unit, syn_utils::add_lifetime};
 
-pub struct StructDeriveBuilder;
-pub type StructBuilder = fn(&DeriveInput, &DataStruct) -> proc_macro2::TokenStream;
-
-//
-#[derive(Debug, Default)]
-enum AttrKind {
-    // when no #[deser] attribute is given
-    #[default]
-    NoAttribute,
-
-    // #[deser(ignore)]
-    NoAction,
-
-    // #[deser(with_fn(my_func))]
-    Call(Ident),
-
-    // #[deser(with_code( let v = Vec::new(); ))]
-    Block(proc_macro2::TokenStream),
-
-    // #[deser(debug)]
-    Debug,
-}
+use super::{AttrKind, StructDeriveBuilder};
 
 impl StructDeriveBuilder {
-    pub fn to_network(ast: &DeriveInput, ds: &DataStruct) -> proc_macro2::TokenStream {
-        // no code is created for unit structs
-        if StructDeriveBuilder::is_unit(ds) {
-            return quote!();
-        }
-
-        let struct_name = &ast.ident;
-
-        let method_calls = ds.fields.iter().enumerate().map(|field| {
-            match &field.1.ident {
-                // case of a struct with named fields
-                Some(field_name) => {
-                    quote! {
-                        length += ToNetworkOrder::serialize_to(&self.#field_name, buffer)?;
-                    }
-                }
-                // case of a tuple struct
-                None => {
-                    let index = Index::from(field.0);
-                    quote! {
-                        length += ToNetworkOrder::serialize_to(&self.#index, buffer)?;
-                    }
-                }
-            }
-        });
-
-        let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
-
-        quote! {
-            impl #impl_generics ToNetworkOrder for #struct_name #ty_generics #where_clause {
-                fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
-                    let mut length = 0usize;
-                    #( #method_calls)*
-                    Ok(length)
-                }
-            }
-        }
-    }
-
     pub fn from_network(ast: &DeriveInput, ds: &DataStruct) -> proc_macro2::TokenStream {
         // no code is created for unit structs
-        if StructDeriveBuilder::is_unit(ds) {
+        if is_unit(ds) {
             return quote!();
         }
 
@@ -92,23 +31,19 @@ impl StructDeriveBuilder {
             }
         });
 
+        // add lifetime specific to our trait ('fromnet)
         let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
-        let gen_clone = process_generics(ast);
-        let (impl_generics2, _, _) = gen_clone.split_for_impl();
+        let gen_clone = add_lifetime(ast);
+        let (new_impl_generics, _, _) = gen_clone.split_for_impl();
 
         quote! {
-            impl #impl_generics2 FromNetworkOrder<'a> for #struct_name #ty_generics #where_clause {
-                fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
+            impl #new_impl_generics FromNetworkOrder<'fromnet> for #struct_name #ty_generics #where_clause {
+                fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'fromnet [u8]>) -> std::io::Result<()> {
                     #( #method_calls)*
                     Ok(())
                 }
             }
         }
-    }
-
-    // Test whether the struct is a unit struct
-    fn is_unit(ds: &DataStruct) -> bool {
-        matches!(ds.fields, Fields::Unit)
     }
 }
 
@@ -124,7 +59,7 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
 
     // analyze attribute
     let kind = if let Some(deser) = from_attr {
-        process_attr(&deser)
+        process_attr(deser)
     } else {
         AttrKind::NoAttribute
     };
@@ -165,7 +100,7 @@ fn process_named_field(field: &Field) -> proc_macro2::TokenStream {
     }
 }
 
-//process the #[deser] attribute for all different cases
+// process the #[from_network] attribute for all different cases
 fn process_attr(attr: &Attribute) -> AttrKind {
     // outer attribute only
     if attr.style != AttrStyle::Outer {
