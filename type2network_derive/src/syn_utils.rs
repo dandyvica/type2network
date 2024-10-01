@@ -88,7 +88,7 @@ impl SynUtils {
 pub(super) fn add_lifetime(ast: &DeriveInput) -> Generics {
     // need to add the 'a lifetime using this trick. Ref. https://users.rust-lang.org/t/add-lifetime-to/97988/5
     let mut gen_clone = ast.generics.clone();
-    let lt = Lifetime::new("'fromnet", Span::mixed_site());
+    let lt = Lifetime::new("'a", Span::mixed_site());
     let ltp = LifetimeParam::new(lt);
 
     //don't add the 'a lifetime if already there
@@ -132,7 +132,7 @@ pub(super) fn add_lifetime(ast: &DeriveInput) -> Generics {
 
 //     // add lifetime if requested. This is used for the FromNetworkOrder trait
 //     if add_lifetime {
-//         let lt = Lifetime::new("'fromnet", Span::mixed_site());
+//         let lt = Lifetime::new("'a", Span::mixed_site());
 //         let ltp = LifetimeParam::new(lt);
 //         gen_clone.params.push(GenericParam::from(ltp));
 //     }

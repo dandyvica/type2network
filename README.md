@@ -1,3 +1,4 @@
+[![Actions](https://github.com/dandyvica/type2network/actions/workflows/rust.yml/badge.svg)](https://github.com/dandyvica/type2network/actions/workflows/rust.yml)
 # type2network
 
 Traits and procedural macros to convert structures and enums to `bigendian` data streams.
@@ -13,9 +14,9 @@ pub trait ToNetworkOrder {
 }
 
 // function to convert from network order (big-endian)
-pub trait FromNetworkOrder<'fromnet> {
+pub trait FromNetworkOrder<'a> {
     // copy from a network-order buffer to a structure
-    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'fromnet [u8]>)
+    fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>)
         -> std::io::Result<()>;
 }
 ```

@@ -112,12 +112,12 @@ fn struct_lifetime_to() {
 #[allow(dead_code)]
 fn struct_lifetime_from() {
     #[derive(Debug, PartialEq, FromNetwork)]
-    struct DataLifeTimeWithTypeParam<'fromnet, T, V>
+    struct DataLifeTimeWithTypeParam<'a, T, V>
     where
-        T: FromNetworkOrder<'fromnet>,
-        V: FromNetworkOrder<'fromnet>,
+        T: FromNetworkOrder<'a>,
+        V: FromNetworkOrder<'a>,
     {
-        x: &'fromnet str,
+        x: &'a str,
         y: T,
         z: Option<V>,
     }
@@ -322,6 +322,7 @@ fn struct_attr_code() {
 
 #[test]
 fn struct_debug() {
+    #[allow(unused)]    
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
     struct PointDebug {
         #[from_network(debug)]
@@ -334,6 +335,7 @@ fn struct_debug() {
 
 #[test]
 fn struct_serde() {
+    #[allow(unused)]
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork, Serialize)]
     struct PointDebug {
         #[serde(skip_serializing)]

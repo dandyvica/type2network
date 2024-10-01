@@ -31,14 +31,14 @@ impl StructDeriveBuilder {
             }
         });
 
-        // add lifetime specific to our trait ('fromnet)
+        // add lifetime specific to our trait ('a)
         let (_, ty_generics, where_clause) = ast.generics.split_for_impl();
         let gen_clone = add_lifetime(ast);
         let (new_impl_generics, _, _) = gen_clone.split_for_impl();
 
         quote! {
-            impl #new_impl_generics FromNetworkOrder<'fromnet> for #struct_name #ty_generics #where_clause {
-                fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'fromnet [u8]>) -> std::io::Result<()> {
+            impl #new_impl_generics FromNetworkOrder<'a> for #struct_name #ty_generics #where_clause {
+                fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>) -> std::io::Result<()> {
                     #( #method_calls)*
                     Ok(())
                 }

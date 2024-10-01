@@ -11,9 +11,9 @@
 //! }
 //!
 //! // function to convert from network order (big-endian)
-//! pub trait FromNetworkOrder<'fromnet> {
+//! pub trait FromNetworkOrder<'a> {
 //!     // copy from a network-order buffer to a structure
-//!     fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'fromnet [u8]>)
+//!     fn deserialize_from(&mut self, buffer: &mut std::io::Cursor<&'a [u8]>)
 //!         -> std::io::Result<()>;
 //! }
 //! ```
@@ -49,6 +49,7 @@
 //! 
 //! * C-like enums: in that case, the `TryFrom` trait must be defined, and ```#[from_network(TryFrom)]``` must be added as an outer attribute
 //! * C-like enums having in addition a catch all fallback value (refer to the `num_enum` crate). In that case, the `From` trait must be defined
+//! 
 //! and ```#[from_network(From)]``` must be added as an outer attribute
 //! 
 //! Refer to [integration test](https://github.com/dandyvica/type2network/blob/main/tests/integration_tests.rs) for examples.
