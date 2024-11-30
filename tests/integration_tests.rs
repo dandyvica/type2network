@@ -243,6 +243,26 @@ fn enum_message() {
 
 #[test]
 #[allow(dead_code)]
+fn tuple_struct() {
+    #[derive(ToNetwork)]
+    struct NewType(Vec<u16>);
+    let n = NewType(vec![0x1234, 0x5678]);
+    to_network_test(&n, 4, &[0x12, 0x34, 0x56, 0x78]);
+
+    #[derive(ToNetwork)]
+    struct Point {
+        x: u8,
+        y: u8
+    }
+    #[derive(ToNetwork)]
+    struct PointList(Vec<Point>);
+    let p = PointList(vec![Point{x:0x12, y:0x34}, Point{x:0x56, y:0x78}]);
+    to_network_test(&p, 4, &[0x12, 0x34, 0x56, 0x78]);
+
+}
+
+#[test]
+#[allow(dead_code)]
 fn enum_lifetime() {
     #[derive(ToNetwork)]
     enum Question<'a> {
