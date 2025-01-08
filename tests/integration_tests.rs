@@ -252,13 +252,12 @@ fn tuple_struct() {
     #[derive(ToNetwork)]
     struct Point {
         x: u8,
-        y: u8
+        y: u8,
     }
     #[derive(ToNetwork)]
     struct PointList(Vec<Point>);
-    let p = PointList(vec![Point{x:0x12, y:0x34}, Point{x:0x56, y:0x78}]);
+    let p = PointList(vec![Point { x: 0x12, y: 0x34 }, Point { x: 0x56, y: 0x78 }]);
     to_network_test(&p, 4, &[0x12, 0x34, 0x56, 0x78]);
-
 }
 
 #[test]
@@ -342,7 +341,7 @@ fn struct_attr_code() {
 
 #[test]
 fn struct_debug() {
-    #[allow(unused)]    
+    #[allow(unused)]
     #[derive(Debug, Default, PartialEq, ToNetwork, FromNetwork)]
     struct PointDebug {
         #[from_network(debug)]

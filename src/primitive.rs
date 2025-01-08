@@ -130,7 +130,7 @@ impl<'a> FromNetworkOrder<'a> for char {
     }
 }
 
-impl ToNetworkOrder for &[u8] {
+impl ToNetworkOrder for [u8] {
     /// Example:    
     /// ```
     /// use type2network::ToNetworkOrder;

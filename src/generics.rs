@@ -1,6 +1,6 @@
 //! All functions/trait to convert DNS structures to network order back & forth
-use std::io::Write;
 use std::marker::PhantomData;
+use std::{borrow::Cow, io::Write};
 
 use crate::{FromNetworkOrder, ToNetworkOrder};
 
@@ -166,6 +166,35 @@ where
             self.push(u);
         }
         Ok(())
+    }
+}
+
+impl<T> ToNetworkOrder for Cow<'_, T>
+where
+    T: ToNetworkOrder + ToOwned,
+    T::Owned: ToNetworkOrder,
+{
+    /// # Example
+    /// ```
+    /// use std::borrow::Cow;
+    /// use type2network::ToNetworkOrder;
+    ///
+    /// let mut buffer: Vec<u8> = Vec::new();
+    /// let bytes = Cow::from(b"\xFE\xFF");
+    /// assert_eq!(bytes.serialize_to(&mut buffer).unwrap(), 2);
+    /// assert_eq!(buffer, &[0xFE, 0xFF]);
+    /// 
+    /// let mut buffer: Vec<u8> = Vec::new();
+    /// let bytes = Cow::from(b"\xFE\xFF".to_vec());
+    /// assert_eq!(bytes.serialize_to(&mut buffer).unwrap(), 2);
+    /// assert_eq!(buffer, &[0xFE, 0xFF]);
+    ///
+    /// ```    
+    fn serialize_to(&self, buffer: &mut Vec<u8>) -> std::io::Result<usize> {
+        match self {
+            Cow::Borrowed(bor) => bor.serialize_to(buffer),
+            Cow::Owned(own) => own.serialize_to(buffer),
+        }
     }
 }
 

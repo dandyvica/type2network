@@ -43,19 +43,19 @@
 //! * ```#[from_network(with_fn(func))]``` : the function ```func(&mut self) -> std::io::Result<()>``` is called for that field.
 //! * ```#[from_network(with_code(block))]``` : the ```code``` block is injected before the field is being deserialized.
 //!
-//! 
+//!
 //! ## The ```#[from_network]``` enum attribute
 //! Two types of enums are supported for the ```FromNetworkOrder``` trait:
-//! 
+//!
 //! * C-like enums: in that case, the `TryFrom` trait must be defined, and ```#[from_network(TryFrom)]``` must be added as an outer attribute
 //! * C-like enums having in addition a catch all fallback value (refer to the `num_enum` crate). In that case, the `From` trait must be defined
-//! 
+//!
 //! and ```#[from_network(From)]``` must be added as an outer attribute
-//! 
+//!
 //! Refer to [integration test](https://github.com/dandyvica/type2network/blob/main/tests/integration_tests.rs) for examples.
-//! 
-//! 
-//! 
+//!
+//!
+//!
 //! ## List of supported types
 //!
 //! | Type    | ```ToNetwork``` | ```FromNetwork``` |
@@ -80,7 +80,7 @@
 //! | ```Either<L,R>``` | yes     |no|
 //! | ```Bytes``` | yes     |no|
 //! | ```BytesMut``` | no     |yes|
-//! 
+//!
 //! ## Examples
 //!
 //! ```ignore
@@ -135,7 +135,7 @@
 //! use type2network::{FromNetworkOrder, ToNetworkOrder};
 //! use type2network_derive::{FromNetwork, ToNetwork};
 //! ```
-//! 
+//!
 //! ## Why not `bincode` or `serde` ?
 //! The `serde` data model is not managing C-like enums. You have to tap into another crate called `serde_repr`.
 //! In addition, using serde, you define a function, not a trait for your struct. As for bincoe, I found it too much
@@ -188,5 +188,3 @@ pub mod test_helpers {
         assert_eq!(v, val);
     }
 }
-
-

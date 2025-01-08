@@ -69,6 +69,7 @@ Refer to [integration test](https://github.com/dandyvica/type2network/blob/main/
 | ```String``` | yes     |no|
 | ```Option<T>``` | yes     |yes|
 | ```Vec<T>``` | yes     |yes|
+| ```Cow<'_,T>``` | yes     |no|
 | ```Box<T>``` | yes     |yes|
 | ```PhantomData<T>``` | yes     |yes|
 | ```()``` | yes     |yes|
