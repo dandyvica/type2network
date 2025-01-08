@@ -171,7 +171,7 @@ where
 
 impl<T> ToNetworkOrder for Cow<'_, T>
 where
-    T: ToNetworkOrder + ToOwned,
+    T: ToNetworkOrder + ToOwned + ?Sized,
     T::Owned: ToNetworkOrder,
 {
     /// # Example
